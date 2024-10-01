@@ -20,12 +20,16 @@ namespace SpecAnalysis
     };
     public partial class SpectrumAnalyzer : UserControl
     {
-
+        // Define the sampling rate for audio processing
         private static int m_samplingRate = 44100;
+        // Define the FFT size for the analysis
         private static int m_fftSize = 2048;
 
+        // Get the path to the user's desktop directory.
         static string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+        // Define the relative path for storing peaks.
         static string relativePathForDirectRecording = "..\\peaks";
+        // Get the full path for recording peaks by combining the desktop path with the relative path.
         private string pathForDirectRecording = Path.GetFullPath(desktopPath + relativePathForDirectRecording);
 
         private double[] m_frequencyResponseOverall;
@@ -35,7 +39,6 @@ namespace SpecAnalysis
         private ComplexNumber[] cResponseArray;
         private double[] responseArray;
         private ComplexNumber cOne = new ComplexNumber(1.0f, 0.0f);
-        private string waveType = "";
 
         private List<GraphicsPath> gPathList = new List<GraphicsPath>();
         private List<Pen> filterPenList = new List<Pen>();
@@ -47,7 +50,6 @@ namespace SpecAnalysis
         private List<FilterPanelUC> filterList= new List<FilterPanelUC>();
 
         private FolderBrowserDialog folderBrowserDialog1 = new FolderBrowserDialog();
-        private OpenFileDialog fileDialog1 = new OpenFileDialog();
         private SaveFileDialog saveDialog = new SaveFileDialog();
         private int minResponseDb = -120;
         private int maxResponseDb = 20;
@@ -141,8 +143,6 @@ namespace SpecAnalysis
         private float[] m_transformedLogIndexes;
         private float[] m_transformedMagnitudes;
         private float[] m_transformedMagnitudesOverall;
-        private float[] tempTransformedMagnitudes;
-        private float[] m_wavFileEnvelope;
         private bool m_isPeriodic = false;
 
         private float[] m_transformedFrequencies;
@@ -154,8 +154,6 @@ namespace SpecAnalysis
         private Pen zoomPen = new Pen(Color.Maroon, 1);
         private Pen gridPen = new Pen(Color.FromArgb(128, Color.Silver), 1);
         private Pen pointToPointPen = new Pen(Color.DarkOrange, 1);
-        private Brush backBrush = new SolidBrush(Color.Silver);
-        private Brush pointBackBrush = new SolidBrush(Color.White);
         private Pen periodicPeakPen = new Pen(Color.Navy, 6);
         private Pen pointPen = new Pen(Color.Red, 6);
         private Pen framePen = new Pen(Color.Silver, 2);
@@ -169,10 +167,7 @@ namespace SpecAnalysis
         private Brush pointToPointBrush = new SolidBrush(Color.OrangeRed);
         private Random rand = new Random();
         private int peakCount = 0;
-        private int cutoffCount = 0;
         private float currentCutoffFrequency = 0;
-        private bool firstHarmonicLogged = false;
-        private bool sineFrequencyChanged = false;
 
         private int signalRectTop = 0;
         private int signalRectBottom = 0;
@@ -185,6 +180,15 @@ namespace SpecAnalysis
         private float minValue = 0;
         private bool firstHarmonicDetectEnabled = false;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SpectrumAnalyzer"/> class.
+        /// </summary>
+        /// <remarks>
+        /// This constructor sets up the spectrum analyzer by initializing its components,
+        /// enabling double buffering to reduce flicker, and calling the <c>update</c> method
+        /// to prepare necessary parameters. It also initializes various lists and arrays
+        /// for the envelope, peak, and frequency values to default states.
+        /// </remarks>
         public SpectrumAnalyzer()
         {
             InitializeComponent();
@@ -232,16 +236,19 @@ namespace SpecAnalysis
             GraphicsPath gPathOverall = new GraphicsPath();
             GraphicsPath gPathPeak = new GraphicsPath();
             GraphicsPath gPathSignal = new GraphicsPath();
-            GraphicsPath gPathEnvelope = new GraphicsPath();
             GraphicsPath gPathPeriod = new GraphicsPath();
 
+
+            // Create a rectangular frame for the main display area, offsetting from the window edges
             Rectangle frameRect = Rectangle.FromLTRB(this.Left + 10, this.Top + 150, this.Right - 10 + resizeX, this.Bottom - 200 + resizeY);
+            // Create an inner rectangle for the content area within the frame
             Rectangle innerRect = Rectangle.FromLTRB(frameRect.Left + 50, frameRect.Top + 30, frameRect.Right - 35, frameRect.Bottom - 30);
 
             GUI.DrawRoundedRectangle(g, frameRect, framePen, 4, 4, 4, 4);
             g.DrawRectangle(innerPen, innerRect);
-            g.DrawRectangle(zoomPen, zoomRect);           
+            g.DrawRectangle(zoomPen, zoomRect);
 
+            // Store the boundaries and dimensions of the inner rectangle for later use
             innerRectLeft = innerRect.Left;
             innerRectRight = innerRect.Right;
             innerRectBottom = innerRect.Bottom;
@@ -249,6 +256,7 @@ namespace SpecAnalysis
             innerRectHeight = innerRect.Height;
             innerRectWidth = innerRect.Width;
 
+            // Store the boundaries and dimensions of the frame rectangle for later use
             frameRectBottom = frameRect.Bottom;
             frameRectLeft = frameRect.Left;
             frameRectRight = frameRect.Right;
@@ -259,7 +267,7 @@ namespace SpecAnalysis
             frameRectY = frameRect.Y;
             frameRectSize = frameRect.Size;
 
-            
+            // Position the controls and set their width and height values to match the frame
             groupBoxEnvelope.Location = new Point(
                 frameRectLeft,
                 btnPeakReset.Bottom + 3
@@ -268,7 +276,7 @@ namespace SpecAnalysis
 
             groupBoxFilters.Location = new Point(
                 groupBoxEnvelope.Left,
-                groupBoxEnvelope.Bottom
+                groupBoxEnvelope.Bottom 
                 );
             groupBoxFilters.Width = frameRectWidth;
 
@@ -324,8 +332,10 @@ namespace SpecAnalysis
                 );
             txtSlope.Height = innerRectTop - frameRectTop;
 
+            // Create a rectangular area for waveform display
             Rectangle signalRect = Rectangle.FromLTRB(btnCaptureWaveform.Right + 35, this.Top + 10, frameRect.Right, frameRect.Top - 10);
 
+            // Store the boundaries and dimensions of the waveform rectangle for later use
             signalRectBottom = signalRect.Bottom;
             signalRectHeight = signalRect.Bottom;
             signalRectLeft = signalRect.Left;
@@ -333,50 +343,60 @@ namespace SpecAnalysis
             signalRectTop = signalRect.Top;
             signalRectWidth = signalRect.Width;
 
+            // Position the label for the waveform display within the waveform rectangle
             lblWavefile.Location = new Point(
                 signalRect.Left + 5,
                 signalRect.Top
                 );
 
-
+            // Draw the waveform rectangle for the signal display
             g.DrawRectangle(innerPen, signalRect);
 
+            // Set display limits for the Y-axis based on the inner rectangle
             float displayScreenYMax = innerRect.Top;
             float displayScreenYMin = innerRect.Bottom;
             float displayScreenXMax = innerRect.Right;
             float displayScreenXMin = innerRect.Left;
 
+            // Display the current X and Y coordinates in the upper-left corner of the inner rectangle
             g.DrawString("X: " + coordinateToBin(cursorX).ToString("0") + " Hz", magFont, measureBrush, innerRectLeft, frameRectTop);
             g.DrawString("Y: " + coordinateToDB(cursorY).ToString() + " dB", magFont, measureBrush, innerRectLeft, frameRectTop + 12);
 
+            // Clear lists used for storing index and magnitude data
             indexList.Clear();
             magList.Clear();
-
             periodIndexList.Clear();
             periodMagList.Clear();
-
             peakIndexList.Clear();
             peakMagList.Clear();
 
+            // Loop through each output in the real-time output array
             for (int i = 0; i < realTimeOutputs.Length; i++)
             {
+                // Transform the index to screen coordinates
                 realTimeIndexes[i] = GUI.transformCoordinateFloat(i, 0, realTimeOutputs.Length, signalRect.Left, signalRect.Right);
+                // Transform the magnitude to screen coordinates, mapping -1 to 1 to the vertical axis
                 realTimeMagnitudes[i] = GUI.transformCoordinateFloat(realTimeOutputs[i], -1, 1, signalRect.Bottom, signalRect.Top);
             }
 
+            // Loop through the real-time output indexes to add line segments to gPathSignal for plotting the input waveform
             for (int i = 0; i < realTimeOutputs.Length - 1; i++)
             {
                 gPathSignal.AddLine(realTimeIndexes[i], realTimeMagnitudes[i], realTimeIndexes[i + 1], realTimeMagnitudes[i + 1]);
             }
-        
+
+            // Loop through a range of values to display the magnitude ticks on the vertical axis of the input waveform
             for (int i = -2; i <= 2; i++)
             {
                 float m = i / 2.0f;
                 float k = GUI.transformCoordinateFloat(m, -1.0f, 1.0f, signalRect.Bottom, signalRect.Top);
                 g.DrawString(m.ToString(), magFont, measureBrush, signalRect.Left - 28, k);
             }
+
+            // Check if there are any filters to process
             if (filterList.Count > 0)
             {
+                // Loop through the response list to retrieve frequency and complex responses from filters
                 for (int i = 0; i < responseList.Count; i++)
                 {
                     responseList[i] = filterList[i].FrequencyResponse;
@@ -385,66 +405,91 @@ namespace SpecAnalysis
 
             }
 
+            // Check again if there are filters to update their color
             if (filterList.Count > 0)
             {
+                // Loop through each filter in the filter list
                 for (int i = 0; i < filterList.Count; i++)
                 {
+                    // If the filter's color has changed, update the corresponding pen in the filter pen list
                     if (filterList[i].ColorChanged)
                         filterPenList[i] = filterList[i].FilterPen;
                 }
             }
 
+            // Loop through transformed log indexes to transform them to screen coordinates
             for (int i = 0; i < m_transformedLogIndexes.Length - 1; i++)
             {
+                // Transform the shifted indexes to logarithmic screen coordinates
                 m_transformedLogIndexes[i + 1] = GUI.transformCoordinateFloat(m_shiftedIndexes[i + 1], Convert.ToSingle(Math.Log(1, 2)), Convert.ToSingle(Math.Log(m_fftSize / 2 + 1, 2)), displayScreenXMin, displayScreenXMax);
+                // Transform output indexes to linear screen coordinates
                 m_transformedLinearIndexes[i + 1] = GUI.transformCoordinateFloat(m_outputIndexes[i + 1], 1, m_fftSize / 2 + 1, displayScreenXMin, displayScreenXMax);
             }
 
+            // Loop through half the FFT size to calculate frequency response
             for (int i = 0; i < m_fftSize / 2 + 1; i++)
             {
+                // Loop through the complex response list to aggregate responses
                 for (int k = 0; k < cResponseList.Count; k++)
                 {
+                    // Multiply the complex response array for frequency response
                     cResponseArray[i] *= cResponseList[k][i];
+                    // Accumulate the overall frequency response
                     responseArray[i] += responseList[k][i];
 
+                    // Clamp the response to the maximum and minimum dB values
                     if (responseArray[i] > maxResponseDb)
                         responseArray[i] = maxResponseDb;
                     else
                         if (responseArray[i] < minResponseDb)
                         responseArray[i] = minResponseDb;
                 }
+
+                // Store the overall frequency response
                 m_frequencyResponseOverall[i] = responseArray[i];
-                //m_frequencyResponseOverall[i] = cResponseArray[i].GetLogMagnitude(minResponseDb, maxResponseDb);
-                cResponseArray[i] *= complexOutputs[i]; // complexOutputs = fftOutput
+                // Apply the complex outputs to the complex response array
+                cResponseArray[i] *= complexOutputs[i];
+                // Calculate the logarithmic magnitude for the applied filter signal
                 m_filterAppliedSignal[i] = cResponseArray[i].GetLogMagnitude(minResponseDb, maxResponseDb);
             }
+
+            // Loop through the complex response array to initialize values
             for (int i = 0; i < cResponseArray.Length; i++)
             {
                 cResponseArray[i] = cOne;
                 responseArray[i] = 0.0;
             }
+
+            // Loop through half the FFT size to transform magnitudes for display
             for (int i = 0; i < m_fftSize / 2 + 1; i++)
             {
+                // Determine the magnitude to display based on whether filters are applied
                 m_transformedMagnitudes[i] = filtersApplied ? GUI.transformCoordinateFloat((float)m_filterAppliedSignal[i], minResponseDb, maxResponseDb, innerRect.Bottom, innerRect.Top) :
                     GUI.transformCoordinateFloat(m_envelopeArray[i], minResponseDb, maxResponseDb, innerRect.Bottom, innerRect.Top);
+                // Transform the overall frequency response for display
                 m_transformedMagnitudesOverall[i] = GUI.transformCoordinateFloat((float)m_frequencyResponseOverall[i], minResponseDb, maxResponseDb, innerRectBottom, innerRectTop);
             }
+
+            // Check if there are response lists to process
             if (responseList.Count > 0)
             {
+                // Loop through each response list
                 for (int j = 0; j < responseList.Count; j++)
                 {
+                    // Loop through the transformed magnitudes for the current response list
                     for (int i = 0; i < m_fftSize / 2 + 1; i++)
                     {
+                        // Transform the response values to screen coordinates
                         m_transformedMagnitudesList[j][i] = GUI.transformCoordinateFloat((float)responseList[j][i], minResponseDb, maxResponseDb, innerRectBottom, innerRectTop);
                     }
                 }
             }
 
 
-            // not zoomed
+            // Not zoomed
             if (!rectSelected)
             {
-                // periodic signal peak detection, might need improvements!
+                // Periodic signal peak detection, might need improvements!
                 if (m_isPeriodic)
                 {
                     for (int i = 1; i < m_fftSize / 2; i++)
@@ -485,14 +530,15 @@ namespace SpecAnalysis
 
                 }
 
-                // logarithmic y axis grid
+                // Logarithmic y axis grid
                 for (int j = minResponseDb; j <= maxResponseDb; j += yAxisSpacingDb)
                 {
                     int y = GUI.transformCoordinate(j, minResponseDb, maxResponseDb, innerRect.Bottom, innerRect.Top);
                     g.DrawLine(gridPen, innerRect.Left, y, innerRect.Right, y);
                     g.DrawString(j.ToString() + " dB", magFont, measureBrush, frameRect.Left, y - 5);
                 }
-                // logarithmic x axis grid
+
+                // Logarithmic x axis grid
                 if (m_xAxisDisplay == SpectrumDisplayType.DisplayLog)
                 {
                     for (int i = Convert.ToInt32(coordinateToBin(innerRectLeft)); i < Convert.ToInt32(coordinateToBin(innerRectRight)); i++)
@@ -529,7 +575,8 @@ namespace SpecAnalysis
                         }
                     }
                 }
-                // linear x axis grid
+
+                // Linear x axis grid
                 if (m_xAxisDisplay == SpectrumDisplayType.DisplayLinear)
                 {
                     for (int i = minFrequencyHz; i < maxFrequencyHz; i += linearFrequencySpacing)
@@ -540,7 +587,7 @@ namespace SpecAnalysis
                     }
                 }
 
-                // draw selected points
+                // Draw selected points
                 for (int i = 0; i < pointCoordinateX.Count; i++)
                 {
                     g.DrawEllipse(pointPen, pointCoordinateX[i], pointCoordinateY[i], 1, 1);
@@ -554,7 +601,8 @@ namespace SpecAnalysis
                     g.DrawLine(pointToPointPen, pointCoordinateX[pointCoordinateX.Count - 2], pointCoordinateY[pointCoordinateY.Count - 2], pointCoordinateX[pointCoordinateX.Count - 1], pointCoordinateY[pointCoordinateY.Count - 1]);
                     txtSlope.Text = "Slope: " + magChange.ToString() + "/" + frequencyChange.ToString();
                 }
-                // calculate peaks
+
+                // Calculate peaks
                 for (int i = 0; i < m_transformedMagnitudes.Length - 2; i++)
                 {
                     float derivative1 = findDerivative(m_transformedLogIndexes[i], m_transformedMagnitudes[i], m_transformedLogIndexes[i + 1], m_transformedMagnitudes[i + 1]);
@@ -567,7 +615,7 @@ namespace SpecAnalysis
                     }
                 }
 
-                // draw the lines
+                // Draw the lines
                 for (int i = 0; i < m_transformedMagnitudes.Length - 2; i++)
                 {
                     if (m_xAxisDisplay == SpectrumDisplayType.DisplayLog)
@@ -625,7 +673,8 @@ namespace SpecAnalysis
 
                 }
             }
-            // zoomed
+
+            // Zoomed in
             if (rectSelected == true)
             {
                 if (m_isPeriodic)
@@ -673,14 +722,16 @@ namespace SpecAnalysis
                 {
                     gPath.AddLine(indexList[j], magList[j], indexList[j + 1], magList[j + 1]);
                 }
-                // y axis grid
+
+                // Y axis grid
                 for (int j = coordinateToDB(zoomRectBottom); j <= coordinateToDB(zoomRectTop); j += yAxisSpacingDb)
                 {
                     int y = GUI.transformCoordinate(j, coordinateToDB(zoomRectBottom), coordinateToDB(zoomRectTop), innerRect.Bottom, innerRect.Top);
                     g.DrawLine(gridPen, innerRect.Left, y, innerRect.Right, y);
                     g.DrawString(j.ToString() + " dB", magFont, measureBrush, frameRect.Left, y - 5);
                 }
-                // x axis grid
+
+                // X axis grid
                 for (int i = Convert.ToInt32(coordinateToBin(zoomRectLeft)); i < coordinateToBin(zoomRectRight); i += (Convert.ToInt32(coordinateToBin(zoomRectRight)) - Convert.ToInt32(coordinateToBin(zoomRectLeft))) / 6)
                 {
                     int k = GUI.transformCoordinate(Math.Log(i, 2), Math.Log(coordinateToBin(zoomRectLeft), 2), Math.Log(coordinateToBin(zoomRectRight), 2), innerRect.Left, innerRect.Right);
@@ -693,7 +744,8 @@ namespace SpecAnalysis
                         g.DrawString((i / 1000).ToString() + "." + (i & 1000).ToString("0") + "K", freqFont, measureBrush, k - 10, frameRect.Bottom - 15);
 
                 }
-                // draw selected points
+
+                // Draw selected points and the line connects them
                 for (int i = 0; i < zoomPointCoordinateX.Count; i++)
                 {
                     g.DrawEllipse(pointPen, zoomPointCoordinateX[i], zoomPointCoordinateY[i], 1, 1);
@@ -736,7 +788,8 @@ namespace SpecAnalysis
                     g.DrawLine(pointToPointPen, x1, y1, x2, y2);
                     txtSlope.Text = "Slope: " + magChange.ToString() + "/" + frequencyChange.ToString();
                 }
-                // calculate peaks
+
+                // Calculate peaks
                 for (int i = coordinateToIndex(zoomRectLeft); i < coordinateToIndex(zoomRectRight); i++)
                 {
                     float derivative1 = findDerivative(m_transformedLogIndexes[i], m_transformedMagnitudes[i], m_transformedLogIndexes[i + 1], m_transformedMagnitudes[i + 1]);
@@ -751,21 +804,23 @@ namespace SpecAnalysis
                 }
             }
 
+            // Draw the copied frequency message at the top right corner of the frame
             g.DrawString(displayFrequency.ToString() + " Hz copied to the clipboard", freqFont, measureBrush, frameRect.Right - 220, frameRect.Top + 10);
 
-            // draw peaks
+            // Draw peaks
             for (int i = 0; i < peakList.Count - 1; i++)
             {
                 if (peakList.Count >= 2 && peakChecked == true && mousePressed == false && peakList[i] < innerRectBottom && peakList[i + 1] < innerRectBottom && freqList[i] < innerRectRight && freqList[i + 1] < innerRectRight && freqList[i] >= innerRectLeft && freqList[i + 1] > innerRectLeft)
                     gPathPeak.AddLine(freqList[i], peakList[i], freqList[i + 1], peakList[i + 1]);
             }
-            g.DrawPath(Pens.SteelBlue, gPathPeak);
-            g.DrawPath(drawPen, gPath);
-            g.DrawPath(filterPenOverall, gPathOverall);
-            g.DrawPath(drawPen, gPathSignal);
-            g.DrawPath(Pens.Green, gPathEnvelope);
-            //g.DrawPath(Pens.Red, gPathPeriod);
+            g.DrawPath(Pens.SteelBlue, gPathPeak);      // Draw Peaks 
+            g.DrawPath(drawPen, gPath);                 // Draw frequency spectrum
+            g.DrawPath(filterPenOverall, gPathOverall); // Draw overall filter responses
+            g.DrawPath(drawPen, gPathSignal);           // Draw real-time time domain signal
+            //g.DrawPath(Pens.Red, gPathPeriod);        // Uncomment the following line to draw the periodic path if needed
 
+
+            // Check if there are any filter paths to draw
             if (gPathList.Count > 0)
             {
                 for (int i = 0; i < gPathList.Count; i++)
@@ -773,6 +828,8 @@ namespace SpecAnalysis
                     g.DrawPath(filterPenList[i], gPathList[i]);
                 }
             }
+
+            // Reset paths for the next paint cycle to clear previous drawings
             if (gPathList.Count > 0)
             {
                 for (int i = 0; i < gPathList.Count; i++)
@@ -780,18 +837,37 @@ namespace SpecAnalysis
                     gPathList[i].Reset();
                 }
             }
+
+            // Dispose of the paths to free up resources and prevent memory leaks
             gPathOverall.Dispose();
             gPath.Dispose();
             gPathPeak.Dispose();
             gPathSignal.Dispose();
-            gPathEnvelope.Dispose();
             gPathPeriod.Dispose();
-        }        
+        }
 
+        /// <summary>
+        /// Enables the detection of the first harmonic in the spectrum analysis.
+        /// </summary>
+        /// <remarks>
+        /// This method sets the <c>firstHarmonicDetectEnabled</c> flag to true, allowing the spectrum analyzer
+        /// to include the first harmonic in its calculations and visualizations.
+        /// </remarks>
         public void SpectrumFirstHarmonicUpdate()
         {
             firstHarmonicDetectEnabled = true;
         }
+
+        /// <summary>
+        /// Updates the internal coefficients for the spectrum analyzer based on the current FFT size, 
+        /// sampling rate, and selected display settings.
+        /// </summary>
+        /// <remarks>
+        /// This method calculates the attack and release coefficients used for envelope following in the
+        /// spectrum analysis. It also sets the display types for the X and Y axes based on the user's 
+        /// selection in the combo box. Finally, it resets the envelope, peak, and frequency lists to their
+        /// initial values.
+        /// </remarks>
         public void update()
         {
             releaseCoefficient = Convert.ToSingle(Math.Exp(-6.9078 * m_fftSize / (Convert.ToSingle(numericUpDown3.Value) * m_samplingRate * 0.001)));
@@ -822,6 +898,23 @@ namespace SpecAnalysis
                 freqList2[i] = 0;
             }
         }
+
+        /// <summary>
+        /// Updates the spectrum analyzer with the provided FFT size, sampling rate, and output data.
+        /// </summary>
+        /// <param name="fftSize">The size of the FFT to be used for processing.</param>
+        /// <param name="samplingRate">The sampling rate of the audio signal.</param>
+        /// <param name="outputPoints">An array of points representing the output magnitudes and frequencies.</param>
+        /// <param name="shiftedIndexes">An array of shifted frequency indexes for the FFT output.</param>
+        /// <param name="realTimeOutput">An array of real-time values for the waveform display.</param>
+        /// <param name="isPeriodic">Indicates whether the harmonics turned on/off.</param>
+        /// <param name="cOutputPoints">An array of complex numbers representing the FFT output.</param>
+        /// <param name="numOfSamples">The number of samples to process.</param>
+        /// <remarks>
+        /// This method initializes various internal structures based on the FFT size and sampling rate.
+        /// It processes the output data and calculates the current cutoff frequency based on the maximum 
+        /// envelope magnitude detected in the output points.
+        /// </remarks>
         public void update(int fftSize, int samplingRate, PointF[] outputPoints, float[] shiftedIndexes, float[] realTimeOutput, bool isPeriodic, ComplexNumber[] cOutputPoints, int numOfSamples) 
         {
             float maxValue = -1000f;
@@ -851,7 +944,6 @@ namespace SpecAnalysis
             m_outputIndexes = new float[fftSize / 2 + 1];
             m_shiftedIndexes = new float[fftSize / 2 + 1];
             m_transformedFrequencies = new float[fftSize / 2 + 1];
-            tempTransformedMagnitudes = new float[fftSize / 2 + 1];
             m_transformedMagnitudes = new float[fftSize / 2 + 1];
             m_transformedMagnitudesOverall = new float[fftSize / 2 + 1];
             m_transformedLogIndexes = new float[fftSize / 2 + 1];
@@ -890,6 +982,15 @@ namespace SpecAnalysis
             currentCutoffFrequency = ((float)samplingRate / (float)fftSize) * maxIndex;
         }
 
+        /// <summary>
+        /// Handles the mouse down event within the spectrum analyzer.
+        /// </summary>
+        /// <remarks>
+        /// This method processes right-click actions for frequency display, 
+        /// initiates rectangle selection, and detects cutoff selection for filters.
+        /// It also enables the resizing of the analyzer frame when the mouse is
+        /// near the bottom right corner.
+        /// </remarks>
         private void SpectrumAnalyzer_MouseDown(object sender, MouseEventArgs e)
         {
             
@@ -921,6 +1022,14 @@ namespace SpecAnalysis
             this.Invalidate();
         }
 
+        /// <summary>
+        /// Handles the mouse movement event within the spectrum analyzer.
+        /// </summary>
+        /// <remarks>
+        /// This method updates the cursor position based on the mouse location and handles
+        /// adjustments to filter cutoffs if a cutoff selection is active. It also manages
+        /// the zoom rectangle during selection.
+        /// </remarks>
         private void SpectrumAnalyzer_MouseMove(object sender, MouseEventArgs e)
         {
             if (e.X < innerRectRight && e.X > innerRectLeft && e.Y < innerRectBottom && e.Y > innerRectTop && !rectSelected)
@@ -968,6 +1077,37 @@ namespace SpecAnalysis
                 zoomRect = Rectangle.FromLTRB(e.X, rectInitialY, rectInitialX, e.Y);
         }
 
+        /// <remarks>
+        /// This method performs several actions upon releasing the mouse button:
+        /// <list type="bullet">
+        /// <item>
+        /// <description>Sets <c>mousePressed</c> and <c>selectingRect</c> to false.</description>
+        /// </item>
+        /// <item>
+        /// <description>Resets all entries in the <c>cutoffSelectionList</c> to false.</description>
+        /// </item>
+        /// <item>
+        /// <description>If the selected zoom rectangle's dimensions are greater than the specified thresholds:</description>
+        /// <list type="bullet">
+        /// <item>
+        /// <description>Sets <c>rectSelected</c> to true.</description>
+        /// </item>
+        /// <item>
+        /// <description>Adds points from <c>pointCoordinateX</c> and <c>pointCoordinateY</c> to <c>zoomPointCoordinateX</c> and <c>zoomPointCoordinateY</c> if they lie within the zoom rectangle.</description>
+        /// </item>
+        /// <item>
+        /// <description>Resets the <c>envList</c>, <c>peakList</c>, and <c>freqList</c> to their initial values.</description>
+        /// </item>
+        /// <item>
+        /// <description>Stores the dimensions of the zoom rectangle for future reference.</description>
+        /// </item>
+        /// <item>
+        /// <description>Resets the <c>zoomRect</c> to a zero-sized rectangle.</description>
+        /// </item>
+        /// </list>
+        /// </item>
+        /// </list>
+        /// </remarks>
         private void SpectrumAnalyzer_MouseUp(object sender, MouseEventArgs e)
         {
             mousePressed = false;
@@ -1003,6 +1143,27 @@ namespace SpecAnalysis
             }            
         }
 
+        /// <summary>
+        /// Handles the mouse double-click event on the spectrum analyzer control.
+        /// </summary>
+        /// <remarks>
+        /// This method checks the location of the mouse click and performs various actions based on the mouse button pressed:
+        /// <list type="bullet">
+        /// <item>
+        /// <description><c>Middle Button</c>: Resets the resizing factors for zoom.</description>
+        /// </item>
+        /// <item>
+        /// <description><c>Left Button</c>: Clears the zoom points and resets the envelope, peak, and frequency lists to their minimum values.</description>
+        /// </item>
+        /// <item>
+        /// <description><c>Right Button</c>: 
+        /// If the X-axis display is logarithmic and no rectangle is selected, it calculates the frequency corresponding to the clicked position,
+        /// copies it to the clipboard, and stores the coordinates.
+        /// If a rectangle is selected, it calculates the frequency based on the zoomed coordinates and stores them accordingly.
+        /// </description>
+        /// </item>
+        /// </list>
+        /// </remarks>
         private void SpectrumAnalyzer_MouseDoubleClick(object sender, MouseEventArgs e)
         {
             if (e.Location.X < innerRectRight && e.Location.X > innerRectLeft && e.Location.Y < innerRectBottom && e.Location.Y > innerRectTop && e.Button == MouseButtons.Middle)
@@ -1049,6 +1210,17 @@ namespace SpecAnalysis
             }
 
         }
+
+        /// <summary>
+        /// Handles the click event of button1, adding points to the tree view from the coordinate lists.
+        /// </summary>
+        /// <remarks>
+        /// This method checks if the <c>pointCoordinateY</c> list has more points than the last recorded count. 
+        /// If so, it iterates through the new points, calculates their magnitude and frequency, 
+        /// and adds them as nodes in <c>treeView1</c>. 
+        /// After updating the tree view, it enables the <c>btnSavePoints</c> button 
+        /// and disables <c>button1</c> to prevent duplicate entries.
+        /// </remarks>
         private void button1_Click(object sender, EventArgs e)
         {
             if (pointCoordinateY.Count > lastNumOfPoints)
@@ -1071,12 +1243,27 @@ namespace SpecAnalysis
             this.Invalidate();
         }
 
+        /// <summary>
+        /// Handles the event that occurs after a node(point) in the tree view(marked points) is selected.
+        /// </summary>
+        /// <remarks>
+        /// This method enables the <c>button2</c> control(Delete Point) when a node in the <c>treeView1</c> is selected.
+        /// The button is enabled only if the selected node is not null and is currently selected.
+        /// </remarks>
         private void treeView1_AfterSelect(object sender, TreeViewEventArgs e)
         {
             if (e.Node.IsSelected == true && e.Node != null)
                 button2.Enabled = true;
         }
 
+        /// <summary>
+        /// Handles the click event for the button that removes the selected node from the tree view that marked points are stored.
+        /// </summary>
+        /// <remarks>
+        /// This method removes the currently selected node from the <c>treeView1</c> control. 
+        /// If there are no remaining nodes in the tree view after the removal, the <c>btnSavePoints</c> button is disabled. 
+        /// The <c>button2</c> itself is also disabled after the action to prevent further attempts to remove nodes.
+        /// </remarks>
         private void button2_Click(object sender, EventArgs e)
         {
             treeView1.Nodes.Remove(treeView1.SelectedNode);
@@ -1086,6 +1273,15 @@ namespace SpecAnalysis
             button2.Enabled = false;
         }
 
+        /// <summary>
+        /// Handles the click event for the button that saves marked points' data to an XML file.
+        /// </summary>
+        /// <remarks>
+        /// This method prompts the user to select a folder where the points data will be saved as an XML file. 
+        /// If the <c>treeView1</c> has nodes, it creates an XML document with the root element "Points". 
+        /// For each node in the tree view, it adds attributes for slope, magnitude, frequency, and name, 
+        /// and appends them to the XML document. The document is then saved in the selected folder.
+        /// </remarks>
         private void btnSavePoints_Click(object sender, EventArgs e)
         {
             DialogResult result = folderBrowserDialog1.ShowDialog();
@@ -1111,6 +1307,17 @@ namespace SpecAnalysis
             }           
 
         }
+
+        /// <summary>
+        /// Handles the click event for the button that removes the last points from the coordinate lists and spectrum.
+        /// </summary>
+        /// <remarks>
+        /// This method checks if there are any points in the <c>pointCoordinateX</c> 
+        /// and <c>pointCoordinateY</c> lists and removes the last point if they are not empty. 
+        /// It also removes the last point from <c>zoomPointCoordinateX</c> and <c>zoomPointCoordinateY</c> 
+        /// if they contain points. The <c>lastNumOfPoints</c> variable is decremented to reflect the 
+        /// removal, and is reset to zero if it goes below zero.
+        /// </remarks>
         private void button3_Click(object sender, EventArgs e)
         {
             if (pointCoordinateX.Count != 0 && pointCoordinateY.Count != 0)
@@ -1127,43 +1334,96 @@ namespace SpecAnalysis
             if (lastNumOfPoints < 0)
                 lastNumOfPoints = 0;
         }
+
+        /// <summary>
+        /// Converts a frequency bin index to a horizontal coordinate for spectrum display.
+        /// </summary>
+        /// <param name="bin">The index of the frequency bin to be converted.</param>
+        /// <returns>The horizontal coordinate corresponding to the frequency bin.</returns>
         private float binToCoordinate(int bin)
         {
             float coordinate = innerRectLeft + ((Convert.ToSingle(Math.Log((bin * m_fftSize) / m_samplingRate, 2) * ((innerRectRight - innerRectLeft) / (Convert.ToSingle(Math.Log(m_fftSize / 2, 2)))))));
             return coordinate;
         }
+
+        /// <summary>
+        /// Converts a horizontal coordinate from the spectrum display back to a frequency bin index.
+        /// </summary>
+        /// <param name="coordinate">The horizontal coordinate to be converted.</param>
+        /// <returns>The corresponding frequency bin index.</returns>
         private float coordinateToBin(int coordinate)
         {
             float bin = ((float)m_samplingRate / (float)m_fftSize) * Convert.ToSingle(Math.Pow(2, (coordinate - innerRectLeft) * (Convert.ToSingle(Math.Log(m_fftSize / 2, 2)) / (innerRectRight - innerRectLeft))));
             return bin;
         }
+
+        /// <summary>
+        /// Converts a horizontal coordinate from the spectrum display back to a frequency bin index.
+        /// </summary>
+        /// <param name="coordinate">The horizontal coordinate as a float to be converted.</param>
+        /// <returns>The corresponding frequency bin index.</returns>
         private float coordinateToBin(float coordinate)
         {
             float bin = ((float)m_samplingRate / (float)m_fftSize) * Convert.ToSingle(Math.Pow(2, (coordinate - innerRectLeft) * (Convert.ToSingle(Math.Log(m_fftSize / 2, 2)) / (innerRectRight - innerRectLeft))));
             return bin;
         }
+
+        /// <summary>
+        /// Converts a vertical coordinate from the spectrum display to a decibel (dB) value.
+        /// </summary>
+        /// <param name="coordinate">The vertical coordinate to be converted.</param>
+        /// <returns>The corresponding decibel (dB) value.</returns>
         private int coordinateToDB(int coordinate)
         {
             int desibel = minResponseDb + ((coordinate - innerRectBottom) * (maxResponseDb - minResponseDb) / (innerRectTop - innerRectBottom));
             return desibel;
         }
+
+        /// <summary>
+        /// Converts a vertical coordinate from the spectrum display to a decibel (dB) value.
+        /// </summary>
+        /// <param name="coordinate">The vertical coordinate as a float to be converted.</param>
+        /// <returns>The corresponding decibel (dB) value as a float.</returns>
         private float coordinateToDB(float coordinate)
         {
             float desibel = Convert.ToSingle(minResponseDb + ((coordinate - innerRectBottom) * (maxResponseDb - minResponseDb) / (innerRectTop - innerRectBottom)));
             return desibel;
         }
+
+        /// <summary>
+        /// Converts a horizontal coordinate from the spectrum display to a corresponding index value.
+        /// </summary>
+        /// <param name="coordinate">The horizontal coordinate to be converted.</param>
+        /// <returns>The corresponding index value as an integer.</returns>
         private int coordinateToIndex(int coordinate)
         {
             float fIndex = Convert.ToSingle(Math.Pow(2, (coordinate - innerRectLeft) * (Convert.ToSingle(Math.Log(m_fftSize / 2, 2)) / (innerRectRight - innerRectLeft))));
             int index = Convert.ToInt32(fIndex);
             return index;
         }
+
+        /// <summary>
+        /// Calculates the derivative (slope) between two points in a 2D space.
+        /// </summary>
+        /// <param name="x1">The x-coordinate of the first point.</param>
+        /// <param name="y1">The y-coordinate of the first point.</param>
+        /// <param name="x2">The x-coordinate of the second point.</param>
+        /// <param name="y2">The y-coordinate of the second point.</param>
+        /// <returns>The derivative (slope) between the two points as a float.</returns>
         private float findDerivative(float x1, float y1, float x2, float y2)
         {
             float derivative = (y2 - y1) / (x2 - x1);
             return derivative;
         }
 
+        /// <summary>
+        /// Toggles the peak detection feature when the associated checkbox state changes.
+        /// </summary>
+        /// <remarks>
+        /// This method updates the <c>peakChecked</c> boolean flag based on the current 
+        /// state of the checkbox. If the checkbox is checked, peak detection will be enabled; 
+        /// if unchecked, it will be disabled.
+        /// </remarks>
         private void checkBoxPeak_CheckedChanged(object sender, EventArgs e)
         {
             if (peakChecked == false)
@@ -1172,6 +1432,14 @@ namespace SpecAnalysis
                 peakChecked = false;
         }
 
+        /// <summary>
+        /// Handles updating the minimum response dB value.
+        /// </summary>
+        /// <remarks>
+        /// This method sets the <c>minResponseDb</c> to the current value of the scrollbar, 
+        /// and updates the <c>envList</c>, <c>peakList</c>, and <c>freqList</c> accordingly. 
+        /// It then refreshes the display to reflect these changes.
+        /// </remarks>
         private void vScrollBar1_Scroll(object sender, ScrollEventArgs e)
         {
             minResponseDb = vScrollBar1.Value;
@@ -1186,6 +1454,13 @@ namespace SpecAnalysis
             this.Invalidate();
         }
 
+        /// <summary>
+        /// Handles the scroll event for the second vertical scrollbar, updating the Y-axis spacing in decibels.
+        /// </summary>
+        /// <remarks>
+        /// This method sets the <c>yAxisSpacingDb</c> to the current value of the scrollbar and refreshes the display 
+        /// to reflect the updated spacing.
+        /// </remarks>
         private void vScrollBar2_Scroll(object sender, ScrollEventArgs e)
         {
             yAxisSpacingDb = vScrollBar2.Value;
@@ -1193,6 +1468,14 @@ namespace SpecAnalysis
             this.Invalidate();
         }
 
+        /// <summary>
+        /// Resets the peak values and environmental data for the spectrum display.
+        /// </summary>
+        /// <remarks>
+        /// This method sets all values in the <c>envList</c> to the minimum response dB, 
+        /// resets the peak and frequency lists to their initial positions, 
+        /// and updates the display accordingly.
+        /// </remarks>
         private void btnPeakReset_Click(object sender, EventArgs e)
         {
             for (int i = 0; i < envList.Count; i++)
@@ -1206,6 +1489,14 @@ namespace SpecAnalysis
             this.Invalidate();
         }
 
+        /// <summary>
+        /// Captures the current spectrum and saves it as a JPG image file.
+        /// </summary>
+        /// <remarks>
+        /// This method creates a bitmap of the current spectrum, captures its screen representation, 
+        /// and prompts the user to select a location and filename to save the image as a JPG file.
+        /// The default filename is set to "test" and the file extension is ensured to be ".jpg".
+        /// </remarks>
         private void button4_Click(object sender, EventArgs e)
         {
             Bitmap bm = new Bitmap(this.Width, this.Height, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
@@ -1234,6 +1525,15 @@ namespace SpecAnalysis
                 //Clipboard.SetImage((Image)bm);
             }
         }
+
+        /// <summary>
+        /// Initializes the frequency table and related arrays based on the specified size.
+        /// </summary>
+        /// <param name="size">The size of the frequency table and related arrays to be initialized.</param>
+        /// <remarks>
+        /// This method calculates the frequency values and initializes the frequency response and filter applied signal arrays.
+        /// It also prepares a complex response array with default values.
+        /// </remarks>
         public void InitializeFrequencyTable(int size)
         {
             m_frequencyTable = new double[size];
@@ -1256,6 +1556,14 @@ namespace SpecAnalysis
                 cResponseArray[i] = new ComplexNumber(1.0f, 0.0f);
             }
         }
+
+        /// <summary>
+        /// Initializes the filter resonance table with calculated resonance values.
+        /// </summary>
+        /// <remarks>
+        /// This method fills the resonance table with values ranging from a specified initial 
+        /// resonance to a final resonance, spaced logarithmically over 128 entries.
+        /// </remarks>
         public void InitializeResonanceTable()
         {
             m_filterResonanceTable = new double[128];
@@ -1271,6 +1579,14 @@ namespace SpecAnalysis
 
         }
 
+        /// <summary>
+        /// Creates a new filter panel and initializes associated data structures for filter response processing.
+        /// </summary>
+        /// <remarks>
+        /// This method initializes arrays and objects necessary for filter processing, including
+        /// magnitude arrays, response arrays, and graphical representations. It also adds the new 
+        /// filter panel to the list of filters and updates the UI to reflect the addition.
+        /// </remarks>
         private void button5_Click(object sender, EventArgs e)
         {
             FilterPanelUC filter = new FilterPanelUC();
@@ -1296,6 +1612,13 @@ namespace SpecAnalysis
             listBox1.Enabled = true;
         }
 
+        /// <summary>
+        /// Handles the event when a new filter is selected from the filter list.
+        /// </summary>
+        /// <remarks>
+        /// This method clears the current controls from <c>panel1</c> and adds the selected filter panel 
+        /// from the <c>filterList</c> to the panel, updating the UI to display the selected filter's settings.
+        /// </remarks>
         private void listBox1_SelectedIndexChanged(object sender, EventArgs e)
         {
             int selectedIndex = listBox1.SelectedIndex;
@@ -1304,6 +1627,15 @@ namespace SpecAnalysis
             panel1.Controls.Add(filterList[selectedIndex]);
         }
 
+        /// <summary>
+        /// Opens a folder browser dialog to select a directory and saves the current filter settings as an XML file.
+        /// </summary>
+        /// <remarks>
+        /// This method displays a folder browser dialog and, if the user selects a directory and there are filters present,
+        /// it creates an XML document containing the settings for each filter in the <c>filterList</c>. The XML document
+        /// includes attributes for filter mode, type, cutoff frequency, gain, and resonance for each filter. The resulting 
+        /// XML file is saved in the selected directory with a name derived from the filter types and modes.
+        /// </remarks>
         private void button6_Click(object sender, EventArgs e)
         {
             DialogResult result = folderBrowserDialog1.ShowDialog();
@@ -1330,6 +1662,17 @@ namespace SpecAnalysis
                 xmlDocument.Save(folderBrowserDialog1.SelectedPath + @"\" + nameForFilter + ".xml");
             }
         }
+
+        /// <summary>
+        /// Determines whether a given number is odd.
+        /// </summary>
+        /// <param name="number">The integer number to check.</param>
+        /// <returns>
+        /// <c>true</c> if the number is odd; otherwise, <c>false</c>.
+        /// </returns>
+        /// <remarks>
+        /// This method uses the modulo operator to check if the number is divisible by 2.
+        /// If it is not 
         public bool checkOdd(int number)
         {
             if (number % 2 == 0)
@@ -1337,6 +1680,18 @@ namespace SpecAnalysis
             else
                 return true;
         }
+
+        /// <summary>
+        /// Determines whether a given number is even.
+        /// </summary>
+        /// <param name="number">The integer number to check.</param>
+        /// <returns>
+        /// <c>true</c> if the number is even; otherwise, <c>false</c>.
+        /// </returns>
+        /// <remarks>
+        /// This method uses the modulo operator to check if the number is divisible by 2.
+        /// If it is divisible, the number is considered even.
+        /// </remarks>
         public bool checkEven(int number)
         {
             if (number % 2 == 0)
@@ -1344,6 +1699,18 @@ namespace SpecAnalysis
             else
                 return false;
         }
+
+        /// <summary>
+        /// Handles the click event of the "Save Peaks" button.
+        /// Saves the magnitudes of the peaks and their corresponding frequency ratios to a file.
+        /// </summary>
+        /// <remarks>
+        /// This method checks if there are any peak magnitudes in <c>peakMagList</c>. If so, it opens a text writer to 
+        /// save the information about harmonics, including frequency ratios and magnitudes. The method distinguishes 
+        /// between odd and even frequency ratios and applies appropriate calculations for coefficients that are appended
+        /// to a polynomial string. The resulting data is written to a specified file path. Each entry for harmonics 
+        /// is formatted and logged into the file, followed by the polynomial representation of the magnitudes.
+        /// </remarks>
         private void btnSavePeaks_Click(object sender, EventArgs e)
         {
             int countOdd = 0;
@@ -1398,32 +1765,19 @@ namespace SpecAnalysis
 
                 }
             }
-            /*if (peakMagList.Count > 0)
-            {
-                XmlDocument xmlDocument = new XmlDocument();
-                XmlElement xmlRoot = xmlDocument.CreateElement("Peaks");
-                int numberOfNodes = peakMagList.Count;
-
-                for (int i = 0; i < peakMagList.Count; i++)
-                {
-                    int mag = coordinateToDB((int)peakMagList[i]);
-                    float freq = coordinateToBin(peakIndexList[i]);
-                    float freqRatio = freq / coordinateToBin(peakMagList[0]);
-
-
-                    xmlRoot.SetAttribute("frequency" + i, freq.ToString("0"));
-                    xmlRoot.SetAttribute("magnitude" + i, mag.ToString());
-
-                    xmlDocument.AppendChild(xmlRoot);
-                }
-
-                nameForPeaks = coordinateToDB((int)peakMagList[0]).ToString() + "_" + coordinateToBin(peakIndexList[0]).ToString("0");
-
-                xmlDocument.Save(@"C:\Users\kv331audio\Desktop\" + @"\" + peakCount.ToString() + ".xml");
-                peakCount++;
-                //xmlDocument.Save(folderBrowserDialog1.SelectedPath + @"\" + nameForPeaks + ".xml");
-            }*/
         }
+
+        /// <summary>
+        /// Converts two bytes into a double-precision floating-point number
+        /// representing a value in the range of -1 to just below 1.
+        /// </summary>
+        /// <param name="firstByte">The first byte (least significant byte) in the conversion.</param>
+        /// <param name="secondByte">The second byte (most significant byte) in the conversion.</param>
+        /// <returns>A double representing the combined value of the two bytes, normalized to the range -1 to just below 1.</returns>
+        /// <remarks>
+        /// This method combines the two input bytes into a 16-bit signed short value using little-endian format.
+        /// The resulting short is then divided by 32768.0 to convert the value to a double in the specified range.
+        /// </remarks>
         static double bytesToDouble(byte firstByte, byte secondByte)
         {
             // convert two bytes to one short (little endian)
@@ -1432,32 +1786,16 @@ namespace SpecAnalysis
             return s / 32768.0;
         }
 
-        public float[] calculateRunningMean(List<float> input, int stepSize)
-        {
-            int outputLength = (int)(input.Count / stepSize) + (input.Count % stepSize);
-            float[] output = new float[outputLength];
-            float sum = 0.0f;
-            int index = 0;
-
-            for (int i = 0, j = 0; i < input.Count; i++)
-            {
-                if(j < stepSize)
-                {
-                    sum += input[i];
-                    index = i;
-                    j++;
-                }
-                else
-                {
-                    output[(int)(index / stepSize)] = sum / stepSize;
-                    sum = 0.0f;
-                    j = 0;
-                    i--;
-                }
-                
-            }
-            return output;
-        }
+        /// <summary>
+        /// Captures the current waveform displayed in the designated rectangle area of the screen
+        /// and saves it as a JPEG image file.
+        /// </summary>
+        /// <remarks>
+        /// This method creates a bitmap image of the specified area of the input waveform. It uses the <c>CopyFromScreen</c>
+        /// method to capture the pixel data and allows the user to specify the file name and 
+        /// location for saving the image in JPEG format. If the user does not provide a .jpg extension,
+        /// it appends the extension automatically.
+        /// </remarks>
         private void btnCaptureWaveform_Click_1(object sender, EventArgs e)
         {
             Bitmap bm = new Bitmap(signalRectWidth, signalRectHeight, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
@@ -1487,11 +1825,28 @@ namespace SpecAnalysis
             }
         }
 
+        /// <summary>
+        /// Enables the detection of the first harmonic when the associated button is clicked.
+        /// </summary>
+        /// <remarks>
+        /// This method sets the <c>firstHarmonicDetectEnabled</c> flag to <c>true</c>,
+        /// allowing the application to begin processing and detecting the first harmonic
+        /// in the audio signal. This should be connected to the appropriate audio analysis 
+        /// functionality in the application.
+        /// </remarks>
         private void button4_Click_1(object sender, EventArgs e)
         {
             firstHarmonicDetectEnabled = true;
         }
 
+        /// <summary>
+        /// Toggles the application of filters when the associated checkbox state changes.
+        /// </summary>
+        /// <remarks>
+        /// This method updates the <c>filtersApplied</c> boolean flag based on the current 
+        /// state of the checkbox. If the checkbox is checked, filters will be applied 
+        /// to the audio processing. If unchecked, filters will be removed.
+        /// </remarks>
         private void checkBoxApplyFilters_CheckedChanged(object sender, EventArgs e)
         {
             if (filtersApplied == false)

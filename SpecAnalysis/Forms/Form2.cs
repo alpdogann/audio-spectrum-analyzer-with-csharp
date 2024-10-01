@@ -21,61 +21,89 @@ namespace SpecAnalysis
     };
     public partial class Form2 : Form
     {
+        // Define the FFT size for the analysis
         private static int fftSize = 2048;
+        // Define the length of each FFT frame
         private static int fftFrameLength = 1024;
+        // Define the sampling rate for audio processing
         private static int samplingRate = 44100;
 
+        // Get the path to the user's desktop directory.
         static string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+        // Define the relative path for storing recordings, set to a folder named "test".
         static string relativePathForDirectRecording = "..\\test";
+        // Get the full path for recordings by combining the desktop path with the relative path.
         private string pathForDirectRecording = Path.GetFullPath(desktopPath + relativePathForDirectRecording);
         FileStream fs = null;
 
-        // Select Audio Device
-
+        // Create an instance of the device selection form to choose an audio device.
         static FormSelectDevice formToSelectDevice = new FormSelectDevice();
-        DialogResult result = formToSelectDevice.ShowDialog();     
+        // Show the dialog to select the device and capture the dialog result.
+        DialogResult result = formToSelectDevice.ShowDialog();
+        // Initialize the ASIO output using the selected device index from the form.
         AsioOut asioOut = new AsioOut(formToSelectDevice.SelectedDeviceIndex);
+        // Declare a WaveIn source for recording audio; initialized to null.
         private WaveIn waveSource = null;
+        // Declare a WaveFileWriter for writing audio data to a file; initialized to null.
         private WaveFileWriter waveFile = null;
+        // Create a signal generator instance for producing audio signals.
         SignalGenerator generator = new SignalGenerator();
+        // Create an alternative signal generator from the NAudio library, configured with the sampling rate and one channel.
         NAudio.Wave.SampleProviders.SignalGenerator alternativeGenerator = new NAudio.Wave.SampleProviders.SignalGenerator(samplingRate, 1);
-        
 
+        // Define buffers for audio processing; initialized with a size of 32768 bytes.
         private byte[] inputBufferByte = new byte[32768];
         private byte[] outputBufferByte = new byte[32768];
-        private float[] inputBufferFloat = new float[32768]; // 32768
+        private float[] inputBufferFloat = new float[32768];
         private float[] outputBufferFloat = new float[32768];
         private float[] realTimeWaveform = new float[32768];
 
+        // Define the folder path for recording wave files, set to a folder named "Envelope Test" on the desktop.
         private static string waveRecordFolder = Path.GetFullPath(desktopPath + "..\\Envelope Test");
         private string waveRecordFile = "TEST_NAME";
         private string waveRecordPath = "";
         private string waveform = "";
-        private int sweepLowFreq = 20;
-        private int sweepHighFreq = 20000;
-        private int sweepDuration = 10;
-        private float sineFrequencyHz = 200;
-        private int signalIndex = 0;
-        private bool isPeriodic = false;
-        private int bitDepth = 16;
 
+        // Define parameters for frequency sweep: low and high frequencies and duration.
+        private int sweepLowFreq = 20; // Minimum frequency for sweep in Hz.
+        private int sweepHighFreq = 20000; // Maximum frequency for sweep in Hz.
+        private int sweepDuration = 10; // Duration of the sweep in seconds.
+
+        // Define parameters for the sine wave generator.
+        private float sineFrequencyHz = 200; // Frequency of the sine wave in Hz.
+        private int signalIndex = 0;         // Index to track the current signal.
+
+
+        private bool isPeriodic = false; // Flag to indicate if the peak detection is enabled.
+        private int bitDepth = 16;       // Bit depth for audio recording.
+
+        // Set the window type for the FFT processing.
         private WindowTypeEnum fftWindowType = WindowTypeEnum.eBlackmanHarrisWindow;
-        private float[] shiftedIndexes = new float[fftSize / 2 +1];
-        private ComplexNumber[] fftOutput = new ComplexNumber[fftSize];
-        private ComplexNumber[] fftInput = new ComplexNumber[fftSize];
-        private ComplexNumber[] cFFTOutput = new ComplexNumber[fftSize];
-        private FFTProcessor fftProcessor = new FFTProcessor(fftSize);
-        private PointF[] outputPoints = new PointF[fftSize / 2 + 1];
+
+        private float[] shiftedIndexes = new float[fftSize / 2 +1];     // Define an array to hold shifted indexes for FFT analysis.
+        private ComplexNumber[] fftOutput = new ComplexNumber[fftSize]; // Output of FFT processing.
+        private ComplexNumber[] fftInput = new ComplexNumber[fftSize];  // Input to FFT processing.
+        private ComplexNumber[] cFFTOutput = new ComplexNumber[fftSize];// Complex FFT output data.
+        private FFTProcessor fftProcessor = new FFTProcessor(fftSize);  // Create an instance of the FFT processor for performing FFT analysis.
+        private PointF[] outputPoints = new PointF[fftSize / 2 + 1];    // Array to hold output points for plotting the FFT results.
         private bool isRecording = false;
         private int driveIndex = 0;
         private bool driveEnabled = false;
         private float distortionGain = 0.0f;
 
+        /// <summary>
+        /// Initializes a new instance of the Form2 class and starts ASIO playback.
+        /// </summary>
         public Form2()
         {         
             InitializeComponent();
             this.asioStartPlaying();
         }
+
+        /// <summary>
+        /// Starts playing audio using the ASIO driver, initializes recording and playback,
+        /// and sets up a file stream for direct recording.
+        /// </summary>
         private void asioStartPlaying()
         {
             BufferedWaveProvider wavprov = new BufferedWaveProvider(new WaveFormat(samplingRate, bitDepth, 1));
@@ -85,6 +113,10 @@ namespace SpecAnalysis
             
             fs = new FileStream(pathForDirectRecording, FileMode.Create, FileAccess.Write);
         }
+
+        /// <summary>
+        /// Stops the audio recording and resets the recording button.
+        /// </summary>
         private void stopRecording()
         {
             waveSource.StopRecording();
@@ -92,6 +124,10 @@ namespace SpecAnalysis
             button1.Text = "Record";
             isRecording = false;
         }
+
+        /// <summary>
+        /// Starts recording audio from the selected input device and saves it as a WAV file.
+        /// </summary>
         private void startRecording()
         {
             waveSource = new WaveIn();
@@ -114,21 +150,32 @@ namespace SpecAnalysis
             isRecording = true;
         }
         void waveSource_DataAvailable(object sender, WaveInEventArgs e){}
+
+        /// <summary>
+        /// Handles the audio processing for input/output audio buffers.
+        /// Generates different waveforms based on the selected signal type,
+        /// processes the audio data, performs FFT analysis, and updates the spectrum analyzer.
+        /// </summary>
         void asio_DataAvailable(object sender, AsioAudioAvailableEventArgs e)
         {
             try
             {
+                // Get the sample type and the number of samples from the event args.
                 AsioSampleType sampleType = e.AsioSampleType;
                 int numberOfSamples = e.SamplesPerBuffer;
                 
                 System.Diagnostics.Debug.Print("wave");
 
-                    for (int i = 0; i < e.InputBuffers.Length; i++)
+                // Process each input buffer.
+                for (int i = 0; i < e.InputBuffers.Length; i++)
                     {
-                        Marshal.Copy(e.InputBuffers[i], inputBufferByte, 0, numberOfSamples * 4);
-                        this.ConvertBytesToFloat(inputBufferByte, inputBufferFloat, numberOfSamples);
-                        this.ConvertBytesToFloat(inputBufferByte, realTimeWaveform, numberOfSamples);
-                switch (signalIndex)
+                    // Copy input buffer data to a byte array and convert to float.
+                    Marshal.Copy(e.InputBuffers[i], inputBufferByte, 0, numberOfSamples * 4);
+                    this.ConvertBytesToFloat(inputBufferByte, inputBufferFloat, numberOfSamples);
+                    this.ConvertBytesToFloat(inputBufferByte, realTimeWaveform, numberOfSamples);
+
+                    // Generate the appropriate waveform based on the selected index.
+                    switch (signalIndex)
                 {
                     case 0:
                         generator.GenerateWhiteNoise(outputBufferFloat, numberOfSamples);
@@ -206,18 +253,24 @@ namespace SpecAnalysis
                         waveform = "White Noise";
                         break;
                 }
-                        this.ConvertFloatToBytes(outputBufferFloat, outputBufferByte, numberOfSamples);
-                        Marshal.Copy(outputBufferByte, 0, e.OutputBuffers[i], numberOfSamples * 4);
+                    // Convert the output buffer from float to byte.
+                    this.ConvertFloatToBytes(outputBufferFloat, outputBufferByte, numberOfSamples);
+                    // Copy the output buffer data back to the output buffers.
+                    Marshal.Copy(outputBufferByte, 0, e.OutputBuffers[i], numberOfSamples * 4);
                     }
+                // Write the input buffer byte data to file.
                 fs.Write(inputBufferByte, 0, numberOfSamples * 4);
 
+                // Write samples to the wave file if recording.
                 if (isRecording)
                     waveFile.WriteSamples(inputBufferFloat, 0, numberOfSamples);
 
+                // Initialize the FFT processor and perform FFT on input and output buffers.
                 fftProcessor.Initialize(fftSize, fftFrameLength, fftWindowType);
                 fftProcessor.FFT(inputBufferFloat, 0, fftOutput);
                 fftProcessor.FFT(outputBufferFloat, 0, fftInput);
 
+                // Prepare the FFT output data for visualization.
                 for (int i = 0; i < fftSize / 2 + 1; i++)
                 {
                     cFFTOutput[i].real = fftOutput[i].x;
@@ -227,21 +280,33 @@ namespace SpecAnalysis
                     shiftedIndexes[i] = (float)Math.Log(i, 2);
                 }
 
-                isPeriodic = false; // harmonics turned off, true for harmonics
+                // Update spectrum analyzer and invalidate to redraw.
+                isPeriodic = false; // Set harmonics turned off
                 spectrumAnalyzer1.update(fftSize, samplingRate, outputPoints, shiftedIndexes, realTimeWaveform, isPeriodic, cFFTOutput, numberOfSamples);
                 spectrumAnalyzer1.Invalidate();
                 e.WrittenToOutputBuffers = true;
                 fs.Flush();
 
-                if(isRecording)
+                // Flush the wave file if recording.
+                if (isRecording)
                     waveFile.Flush();
             }
             catch (Exception)
             {
-                 throw;
+                // Optionally log the exception or handle it as needed.
+                throw; // Re-throw the exception for further handling
             }
                
         }
+
+        /// <summary>
+        /// Applies distortion to the audio waveform using a combination of Chebyshev polynomials.
+        /// The distortion is applied only when the isDistorted flag is true.
+        /// </summary>
+        /// <param name="buffer">The audio buffer to be distorted.</param>
+        /// <param name="index">The index determining the distortion profile.</param>
+        /// <param name="isDistorted">A flag indicating whether distortion is applied.</param>
+        /// <param name="gain">The gain applied to the distorted signal.</param>
         public void DistortWaveform(float[] buffer, int index, bool isDistorted, float gain)
         {
             // CENTER - HOT WIRED - TWEED // 
@@ -329,142 +394,33 @@ namespace SpecAnalysis
 
         }
 
+        /// <summary>
+        /// Recursively computes the value of the Chebyshev polynomial of the first kind for a given input and degree.
+        /// </summary>
+        /// <param name="input">The input value for which the Chebyshev polynomial is evaluated.</param>
+        /// <param name="degree">The degree of the Chebyshev polynomial.</param>
+        /// <returns>The computed value of the Chebyshev polynomial for the given input and degree.</returns>
         public float ChebyshevPolynomial(float input, int degree)
         {
-            float output = 1;
-            switch (degree)
+            if (degree == 0)
             {
-                case 0:
-                    output = 1;
-                    break;
-                case 1:
-                    output = input;
-                    break;
-                case 2:
-                    output = Convert.ToSingle(2.0f * Math.Pow(input, 2)) - 1.0f;
-                    break;
-                case 3:
-                    output = Convert.ToSingle(4.0f * Math.Pow(input, 3)) - (3.0f * input);
-                    break;
-                case 4:
-                    output = Convert.ToSingle(8.0f * Math.Pow(input, 4)) - Convert.ToSingle(8.0f * Math.Pow(input, 2)) + 1;
-                    break;
-                case 5:
-                    output = Convert.ToSingle(16.0f * Math.Pow(input, 5)) - Convert.ToSingle(20.0f * Math.Pow(input, 3)) + (5.0f * input);
-                    break;
-                case 6:
-                    output = Convert.ToSingle(32.0f * Math.Pow(input, 6)) - Convert.ToSingle(48.0f * Math.Pow(input, 4)) + Convert.ToSingle(18.0f * Math.Pow(input, 2)) - 1;
-                    break;
-                case 7:
-                    output = Convert.ToSingle(64.0f * Math.Pow(input, 7)) - Convert.ToSingle(112.0f * Math.Pow(input, 5)) + Convert.ToSingle(56.0f * Math.Pow(input, 3)) - (7.0f * input);
-                    break;
-                case 8:
-                    output = Convert.ToSingle(128.0f * Math.Pow(input, 8)) - Convert.ToSingle(256.0f * Math.Pow(input, 6)) + Convert.ToSingle(160.0f * Math.Pow(input, 4)) - Convert.ToSingle(32.0f * Math.Pow(input, 2)) + 1;
-                    break;
-                case 9:
-                    output = Convert.ToSingle(256.0f * Math.Pow(input, 9)) - Convert.ToSingle(576.0f * Math.Pow(input, 7)) + Convert.ToSingle(432.0f * Math.Pow(input, 5)) - Convert.ToSingle(120.0f * Math.Pow(input, 3)) + (9.0f * input);
-                    break;
-                case 10:
-                    output = Convert.ToSingle(512.0f * Math.Pow(input, 10)) - Convert.ToSingle(1280.0f * Math.Pow(input, 8)) + Convert.ToSingle(1120.0f * Math.Pow(input, 6)) - Convert.ToSingle(400.0f * Math.Pow(input, 4)) + Convert.ToSingle(50.0f * Math.Pow(input, 2)) - 1;
-                    break;
-                case 11:
-                    output = Convert.ToSingle(1024.0f * Math.Pow(input, 11)) - Convert.ToSingle(2816.0f * Math.Pow(input, 9)) + Convert.ToSingle(2816.0f * Math.Pow(input, 7)) - Convert.ToSingle(1232.0f * Math.Pow(input, 5)) + Convert.ToSingle(220.0f * Math.Pow(input, 3)) - (11.0f * input);
-                    break;
-                case 12:
-                    output = Convert.ToSingle(2048.0f * Math.Pow(input, 12)) - Convert.ToSingle(6144.0f * Math.Pow(input, 10)) + Convert.ToSingle(6912.0f * Math.Pow(input, 8)) - Convert.ToSingle(3584.0f * Math.Pow(input, 6)) + Convert.ToSingle(840.0f * Math.Pow(input, 4)) - 
-                        Convert.ToSingle(72.0f * Math.Pow(input, 2)) + 1;
-                    break;
-                case 13:
-                    output = Convert.ToSingle(4096.0f * Math.Pow(input, 13)) - Convert.ToSingle(13312.0f * Math.Pow(input, 11)) + Convert.ToSingle(16640.0f * Math.Pow(input, 9)) - Convert.ToSingle(9984.0f * Math.Pow(input, 7)) + Convert.ToSingle(2912.0f * Math.Pow(input, 5)) - 
-                        Convert.ToSingle(364.0f * Math.Pow(input, 3)) + (13.0f * input);
-                    break;
-                case 14:
-                    output = Convert.ToSingle(8192.0f * Math.Pow(input, 14)) - Convert.ToSingle(28672.0f * Math.Pow(input, 12)) + Convert.ToSingle(39424.0f * Math.Pow(input, 10)) - Convert.ToSingle(26880.0f * Math.Pow(input, 8)) + Convert.ToSingle(9408.0f * Math.Pow(input, 6)) -
-                        Convert.ToSingle(1568.0f * Math.Pow(input, 4)) + Convert.ToSingle(98.0f * Math.Pow(input, 2)) - 1;
-                    break;
-                case 15:
-                    output = Convert.ToSingle(16384.0f * Math.Pow(input, 15)) - Convert.ToSingle(61440.0f * Math.Pow(input, 13)) + Convert.ToSingle(92160.0f * Math.Pow(input, 11)) - Convert.ToSingle(70400.0f * Math.Pow(input, 9)) + Convert.ToSingle(28800.0f * Math.Pow(input, 7)) -
-                        Convert.ToSingle(6048.0f * Math.Pow(input, 5)) + Convert.ToSingle(560.0f * Math.Pow(input, 3)) - (15.0f * input);
-                    break;
-                case 16:
-                    output = Convert.ToSingle(32768f * Math.Pow(input, 16)) - Convert.ToSingle(131072f * Math.Pow(input, 14)) + Convert.ToSingle(212992f * Math.Pow(input, 12)) - Convert.ToSingle(180224f * Math.Pow(input, 10)) + Convert.ToSingle(84480f * Math.Pow(input, 8)) - 
-                        Convert.ToSingle(21504f * Math.Pow(input, 6)) + Convert.ToSingle(2688f * Math.Pow(input, 4)) - Convert.ToSingle(128.0f * Math.Pow(input, 2)) + 1;
-                    break;
-                case 17:
-                    output = Convert.ToSingle(65536f * Math.Pow(input, 17)) - Convert.ToSingle(278528f * Math.Pow(input, 15)) + Convert.ToSingle(487424f * Math.Pow(input, 13)) - Convert.ToSingle(452608f * Math.Pow(input, 11)) + Convert.ToSingle(239360f * Math.Pow(input, 9)) -
-                        Convert.ToSingle(71808f * Math.Pow(input, 7)) + Convert.ToSingle(11424f * Math.Pow(input, 5)) - Convert.ToSingle(816f * Math.Pow(input, 3)) + (17f * input);
-                    break;
-                case 18:
-                    output = Convert.ToSingle(131072f * Math.Pow(input, 18)) - Convert.ToSingle(589824f * Math.Pow(input, 16)) + Convert.ToSingle(1105920f * Math.Pow(input, 14)) - Convert.ToSingle(1118208f * Math.Pow(input, 12)) + Convert.ToSingle(658944f * Math.Pow(input, 10)) - 
-                        Convert.ToSingle(228096f * Math.Pow(input, 8)) + Convert.ToSingle(44352f * Math.Pow(input, 6)) - Convert.ToSingle(4320f * Math.Pow(input, 4)) + Convert.ToSingle(162f * Math.Pow(input, 2)) - 1;
-                    break;
-                case 19:
-                    output = Convert.ToSingle(262144f * Math.Pow(input, 19)) - Convert.ToSingle(1245184f * Math.Pow(input, 17)) + Convert.ToSingle(2490368f * Math.Pow(input, 15)) - Convert.ToSingle(2723840f * Math.Pow(input, 13)) + Convert.ToSingle(1770496f * Math.Pow(input, 11)) - 
-                        Convert.ToSingle(695552f * Math.Pow(input, 9)) + Convert.ToSingle(160512f * Math.Pow(input, 7)) - Convert.ToSingle(20064f * Math.Pow(input, 5)) + Convert.ToSingle(1140f * Math.Pow(input, 3)) - Convert.ToSingle(19f * input);
-                    break;
-                case 20:
-                    output = Convert.ToSingle(524288f * Math.Pow(input, 20)) - Convert.ToSingle(2621440f * Math.Pow(input, 18)) + Convert.ToSingle(5570560f * Math.Pow(input, 16)) - Convert.ToSingle(6553600f * Math.Pow(input, 14)) + Convert.ToSingle(4659200f * Math.Pow(input, 12)) - 
-                        Convert.ToSingle(205004f * Math.Pow(input, 10)) + Convert.ToSingle(549120f * Math.Pow(input, 8)) - Convert.ToSingle(84480f * Math.Pow(input, 6)) + Convert.ToSingle(6600f * Math.Pow(input, 4)) - Convert.ToSingle(200f * Math.Pow(input, 2)) + 1;
-                    break;
-                case 21:
-                    output = Convert.ToSingle(1048576 * Math.Pow(input, 21)) - Convert.ToSingle(5505024 * Math.Pow(input, 19)) + Convert.ToSingle(12386304 * Math.Pow(input, 17)) - Convert.ToSingle(15597568 * Math.Pow(input, 15)) + Convert.ToSingle(12042240 * Math.Pow(input, 13)) - 
-                        Convert.ToSingle(5870592 * Math.Pow(input, 11)) + Convert.ToSingle(1793792 * Math.Pow(input, 9)) - Convert.ToSingle(329472 * Math.Pow(input, 7)) + Convert.ToSingle(33264 * Math.Pow(input, 5)) - Convert.ToSingle(1540 * Math.Pow(input, 3)) + Convert.ToSingle(21 * input);
-                    break;
-                case 22:
-                    output = Convert.ToSingle(2097152 * Math.Pow(input, 22)) - Convert.ToSingle(11534336 * Math.Pow(input, 20)) + Convert.ToSingle(27394048 * Math.Pow(input, 18)) - Convert.ToSingle(36765696 * Math.Pow(input, 16)) + Convert.ToSingle(30638080 * Math.Pow(input, 14)) - 
-                        Convert.ToSingle(16400384 * Math.Pow(input, 12)) + Convert.ToSingle(5637632 * Math.Pow(input, 10)) - Convert.ToSingle(1208064 * Math.Pow(input, 8)) + Convert.ToSingle(151008 * Math.Pow(input, 6)) - Convert.ToSingle(9680 * Math.Pow(input, 4)) + Convert.ToSingle(242 * Math.Pow(input, 2)) - 1;
-                    break;
-                case 23:
-                    output = Convert.ToSingle(4194304 * Math.Pow(input, 23)) - Convert.ToSingle(24117248 * Math.Pow(input, 21)) + Convert.ToSingle(60293120 * Math.Pow(input, 19)) - Convert.ToSingle(85917696 * Math.Pow(input, 17)) + Convert.ToSingle(76873728 * Math.Pow(input, 15)) - 
-                        Convert.ToSingle(44843008 * Math.Pow(input, 13)) + Convert.ToSingle(17145856 * Math.Pow(input, 11)) - Convert.ToSingle(4209920 * Math.Pow(input, 9)) + Convert.ToSingle(631488 * Math.Pow(input, 7)) - Convert.ToSingle(52624 * Math.Pow(input, 5)) + 
-                        Convert.ToSingle(2024 * Math.Pow(input, 3)) - Convert.ToSingle(23 * input);
-                    break;
-                case 24:
-                    output = Convert.ToSingle(8388608 * Math.Pow(input, 24)) - Convert.ToSingle(50331648 * Math.Pow(input, 22)) + Convert.ToSingle(132120576 * Math.Pow(input, 20)) - Convert.ToSingle(199229440 * Math.Pow(input, 18)) + Convert.ToSingle(190513152 * Math.Pow(input, 16)) -
-                        Convert.ToSingle(120324096 * Math.Pow(input, 14)) + Convert.ToSingle(50692096 * Math.Pow(input, 12)) - Convert.ToSingle(14057472 * Math.Pow(input, 10)) + Convert.ToSingle(2471040 * Math.Pow(input, 8)) - Convert.ToSingle(256256 * Math.Pow(input, 6)) +
-                        Convert.ToSingle(13728 * Math.Pow(input, 4)) - Convert.ToSingle(288 * Math.Pow(input, 2)) + 1;
-                    break;
-                case 25:
-                    output = Convert.ToSingle(16777216 * Math.Pow(input, 25)) - Convert.ToSingle(104857600 * Math.Pow(input, 23)) + Convert.ToSingle(288358400 * Math.Pow(input, 21)) - Convert.ToSingle(458752000 * Math.Pow(input, 19)) + Convert.ToSingle(466944000 * Math.Pow(input, 17)) -
-                        Convert.ToSingle(317521920 * Math.Pow(input, 15)) + Convert.ToSingle(146227200 * Math.Pow(input, 13)) - Convert.ToSingle(45260800 * Math.Pow(input, 11)) + Convert.ToSingle(9152000 * Math.Pow(input, 9)) - Convert.ToSingle(1144000 * Math.Pow(input, 7)) +
-                        Convert.ToSingle(80080 * Math.Pow(input, 5)) - Convert.ToSingle(2600 * Math.Pow(input, 3)) + Convert.ToSingle(25 * input);
-                    break;
-                case 26:
-                    output = Convert.ToSingle(33554432 * Math.Pow(input, 26)) - Convert.ToSingle(218103808 * Math.Pow(input, 24)) + Convert.ToSingle(627048448 * Math.Pow(input, 22)) - Convert.ToSingle(1049624576 * Math.Pow(input, 20)) + Convert.ToSingle(1133117440 * Math.Pow(input, 18)) -
-                        Convert.ToSingle(825226992 * Math.Pow(input, 16)) + Convert.ToSingle(412778496 * Math.Pow(input, 14)) - Convert.ToSingle(141213696 * Math.Pow(input, 12)) + Convert.ToSingle(32361472 * Math.Pow(input, 10)) - Convert.ToSingle(4759040 * Math.Pow(input, 8)) +
-                        Convert.ToSingle(416416 * Math.Pow(input, 6)) - Convert.ToSingle(18928 * Math.Pow(input, 4)) + Convert.ToSingle(338 * Math.Pow(input, 2)) - 1;
-                    break;
-                case 27:
-                    output = Convert.ToSingle(67108864 * Math.Pow(input, 27)) - Convert.ToSingle(452984832 * Math.Pow(input, 25)) + Convert.ToSingle(1358954496 * Math.Pow(input, 23)) - Convert.ToSingle(2387607552 * Math.Pow(input, 21)) + Convert.ToSingle(2724986880 * Math.Pow(input, 19)) -
-                        Convert.ToSingle(2118057984 * Math.Pow(input, 17)) + Convert.ToSingle(1143078912 * Math.Pow(input, 15)) - Convert.ToSingle(428654592 * Math.Pow(input, 13)) + Convert.ToSingle(109983744 * Math.Pow(input, 11)) - Convert.ToSingle(18670080 * Math.Pow(input, 9)) +
-                        Convert.ToSingle(1976832 * Math.Pow(input, 7)) - Convert.ToSingle(117935 * Math.Pow(input, 5)) + Convert.ToSingle(3276 * Math.Pow(input, 3)) - Convert.ToSingle(27 * input);
-                    break;
-                case 28:
-                    output = Convert.ToSingle(134217728 * Math.Pow(input, 28)) - Convert.ToSingle(939524096 * Math.Pow(input, 26)) + Convert.ToSingle(2936012800 * Math.Pow(input, 24)) - Convert.ToSingle(5402263552 * Math.Pow(input, 22)) + Convert.ToSingle(6499598336 * Math.Pow(input, 20)) -
-                        Convert.ToSingle(5369233408 * Math.Pow(input, 18)) + Convert.ToSingle(3111714816 * Math.Pow(input, 16)) - Convert.ToSingle(1270087680 * Math.Pow(input, 14)) + Convert.ToSingle(361181184 * Math.Pow(input, 12)) - Convert.ToSingle(69701632 * Math.Pow(input, 10)) +
-                        Convert.ToSingle(8712704 * Math.Pow(input, 8)) - Convert.ToSingle(652286 * Math.Pow(input, 6)) + Convert.ToSingle(25480 * Math.Pow(input, 4)) - Convert.ToSingle(392 * Math.Pow(input, 2)) + 1;
-                    break;
-                case 29:
-                    output = Convert.ToSingle(2684355456 * Math.Pow(input, 29)) - Convert.ToSingle(1946157056 * Math.Pow(input, 27)) + Convert.ToSingle(6325010432 * Math.Pow(input, 25)) - Convert.ToSingle(12163481600 * Math.Pow(input, 23)) + Convert.ToSingle(15386804224 * Math.Pow(input, 21)) -
-                        Convert.ToSingle(13463453696 * Math.Pow(input, 19)) + Convert.ToSingle(8341487616 * Math.Pow(input, 17)) - Convert.ToSingle(3683254272 * Math.Pow(input, 15)) + Convert.ToSingle(1151016960 * Math.Pow(input, 13)) - Convert.ToSingle(249387008 * Math.Pow(input, 11)) +
-                        Convert.ToSingle(36095488 * Math.Pow(input, 9)) - Convert.ToSingle(3281404 * Math.Pow(input, 7)) + Convert.ToSingle(168895 * Math.Pow(input, 5)) - Convert.ToSingle(4060 * Math.Pow(input, 3)) + Convert.ToSingle(29 * input);
-                    break;
-                case 30:
-                    output = Convert.ToSingle(536870912 * Math.Pow(input, 30)) - Convert.ToSingle(4026531840 * Math.Pow(input, 28)) + Convert.ToSingle(13589544960 * Math.Pow(input, 26)) - Convert.ToSingle(27262976000 * Math.Pow(input, 24)) + Convert.ToSingle(36175872000 * Math.Pow(input, 22)) -
-                        Convert.ToSingle(33426505728 * Math.Pow(input, 20)) + Convert.ToSingle(22052208640 * Math.Pow(input, 18)) - Convert.ToSingle(10478223360 * Math.Pow(input, 16)) + Convert.ToSingle(3572121600 * Math.Pow(input, 14)) - Convert.ToSingle(859952200 * Math.Pow(input, 12)) +
-                        Convert.ToSingle(141892608 * Math.Pow(input, 10)) - Convert.ToSingle(12575512 * Math.Pow(input, 8)) + Convert.ToSingle(990076 * Math.Pow(input, 6)) - Convert.ToSingle(33600 * Math.Pow(input, 4)) + Convert.ToSingle(450 * Math.Pow(input, 2)) - 1;
-                    break;
-                case 31:
-                    output = Convert.ToSingle(1073741824 * Math.Pow(input, 31)) - Convert.ToSingle(83214991136 * Math.Pow(input, 29)) + Convert.ToSingle(29125246976 * Math.Pow(input, 27)) - Convert.ToSingle(60850962432 * Math.Pow(input, 25)) + Convert.ToSingle(84515225600 * Math.Pow(input, 23)) -
-                        Convert.ToSingle(82239815680 * Math.Pow(input, 21)) + Convert.ToSingle(57567870976 * Math.Pow(input, 19)) - Convert.ToSingle(29297934336 * Math.Pow(input, 17)) + Convert.ToSingle(10827497472 * Math.Pow(input, 15)) - Convert.ToSingle(2870921360 * Math.Pow(input, 13)) +
-                        Convert.ToSingle(53317224 * Math.Pow(input, 11)) - Convert.ToSingle(61246512 * Math.Pow(input, 9)) + Convert.ToSingle(5261556 * Math.Pow(input, 7)) - Convert.ToSingle(236095 * Math.Pow(input, 5)) + Convert.ToSingle(4960 * Math.Pow(input, 3)) - Convert.ToSingle(31 * input);
-                    break;
-                default:
-                    break;
+                return 1;
+            }
+            if (degree == 1)
+            {
+                return input;
             }
 
-            return output;
+            // Recursive formula: Tn(x) = 2x * Tn-1(x) - Tn-2(x)
+            return 2 * input * ChebyshevPolynomial(input, degree - 1) - ChebyshevPolynomial(input, degree - 2);
         }
+
+        /// <summary>
+        /// Converts an array of bytes to an array of floating-point values.
+        /// </summary>
+        /// <param name="input">The input byte array containing the sample data.</param>
+        /// <param name="output">The output float array where the converted values will be stored.</param>
+        /// <param name="numberOfSamples">The number of samples to convert from the input byte array.</param>
         void ConvertBytesToFloat(byte[] input, float[] output, int numberOfSamples)
         {
             float k = 1.0f / 2147483647.0f;
@@ -485,6 +441,12 @@ namespace SpecAnalysis
 
         }
 
+        /// <summary>
+        /// Converts an array of floating-point values to an array of bytes.
+        /// </summary>
+        /// <param name="input">The input float array containing the sample data to convert.</param>
+        /// <param name="output">The output byte array where the converted byte values will be stored.</param>
+        /// <param name="numberOfSamples">The number of samples to convert from the input float array.</param>
         void ConvertFloatToBytes(float[] input, byte[] output, int numberOfSamples)
         {
             float k = 2147483647.0f;
@@ -511,6 +473,10 @@ namespace SpecAnalysis
             }
         }
 
+        /// <summary>
+        /// Handles the event when the selected waveform in the combo box changes.
+        /// This method updates the enabled state of various controls based on the selected waveform type.
+        /// </summary>
         private void cmbWaveforms_SelectedIndexChanged(object sender, EventArgs e)
         {
             signalIndex = cmbWaveforms.SelectedIndex;
@@ -610,26 +576,46 @@ namespace SpecAnalysis
             spectrumAnalyzer1.update();
         }
 
+        /// <summary>
+        /// Handles the event when the value of the frequency numeric up-down control changes.
+        /// Updates the frequency of the sine wave based on the new value.
+        /// </summary>
         private void numericUpDown1_ValueChanged(object sender, EventArgs e)
         {
             sineFrequencyHz = Convert.ToSingle(numericUpDown1.Value);
         }
 
+        /// <summary>
+        /// Handles the event when the value of the low frequency numeric up-down control changes.
+        /// Updates the lower frequency limit for the sine sweep based on the new value.
+        /// </summary>
         private void numericUpDown2_ValueChanged(object sender, EventArgs e)
         {
             sweepLowFreq = Convert.ToInt32(numericUpDown2.Value);
         }
 
+        /// <summary>
+        /// Handles the event when the value of the high frequency numeric up-down control changes.
+        /// Updates the upper frequency limit for the sine sweep based on the new value.
+        /// </summary>
         private void numericUpDown3_ValueChanged(object sender, EventArgs e)
         {
-            sweepHighFreq =  Convert.ToInt32(numericUpDown3.Value);
+            sweepHighFreq = Convert.ToInt32(numericUpDown3.Value);
         }
 
+        /// <summary>
+        /// Handles the event when the value of the duration numeric up-down control changes.
+        /// Updates the duration of the sine sweep based on the new value.
+        /// </summary>
         private void numericUpDown4_ValueChanged(object sender, EventArgs e)
         {
             sweepDuration = Convert.ToInt32(numericUpDown4.Value);
         }
 
+        /// <summary>
+        /// Handles the event when the selected window type in the combo box changes.
+        /// Updates the FFT window type based on the selected item.
+        /// </summary>
         private void cmbWindow_SelectedIndexChanged(object sender, EventArgs e)
         {
             switch (cmbWindow.SelectedIndex)
@@ -655,6 +641,10 @@ namespace SpecAnalysis
             }
         }
 
+        /// <summary>
+        /// Handles the click event for button1. 
+        /// Starts or stops recording audio based on the current recording state.
+        /// </summary>
         private void button1_Click(object sender, EventArgs e)
         {
             if (isRecording)
@@ -663,11 +653,19 @@ namespace SpecAnalysis
                 startRecording();
         }
 
+        /// <summary>
+        /// Handles the value change event for the multidrive control.
+        /// Updates the drive index based on the new value from the control.
+        /// </summary>
         private void numMultidrive_ValueChanged(object sender, EventArgs e)
         {
             driveIndex = Convert.ToInt32(numMultidrive.Value);
         }
 
+        /// <summary>
+        /// Handles the checked change event for the drive enable checkbox.
+        /// Toggles the drive enabled state based on the checkbox's current state.
+        /// </summary>
         private void checkBox1_CheckedChanged(object sender, EventArgs e)
         {
             if (driveEnabled == false)
