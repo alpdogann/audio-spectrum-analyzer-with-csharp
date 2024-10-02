@@ -414,7 +414,6 @@ namespace SpecAnalysis
                 output[reverseJ] = Input[i].x - Input[j].x;
             }
         }
-
         private void DecimationInFrequencyIFFT(ComplexNumber[] Input, float[] output, int offset)
         {
             // this fft algorithm uses decimation in frequency

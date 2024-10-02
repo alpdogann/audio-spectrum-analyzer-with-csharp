@@ -17,7 +17,14 @@ namespace SpecAnalysis
         private double[] m_combFeedbackTable;
         private int minResponseDB = -120;
         private int maxResponseDB = 20;
-       
+
+        /// <summary>
+        /// Generates a frequency table based on the specified size.
+        /// The frequency values are calculated using a geometric progression 
+        /// between an initial and final frequency, scaled by the sampling rate.
+        /// </summary>
+        /// <param name="size">The number of frequency values to generate.</param>
+        /// <returns>An array of frequency values.</returns>
         public double[] getFrequencyTable(int size)
         {
             double[] frequencyTable2 = new double[size];
@@ -29,17 +36,26 @@ namespace SpecAnalysis
 
             for (int i = 0; i < size; i++)
             {
-
-                frequencyTable2[i] = GUI.transformCoordinateFloat((float)initialFrequency2, (float)finalFrequency2 / (float)Math.Pow(2.0, 128.0 / 12.0), (float)finalFrequency2, 0, 1.0f);
+                frequencyTable2[i] = GUI.transformCoordinateFloat((float)initialFrequency2,
+                    (float)finalFrequency2 / (float)Math.Pow(2.0, 128.0 / 12.0),
+                    (float)finalFrequency2, 0, 1.0f);
                 initialFrequency2 *= multiplier2;
             }
 
             return frequencyTable2;
         }
+
+        /// <summary>
+        /// Initializes the comb feedback table and the Q gain table.
+        /// This method populates the Q gain table based on the resonant frequencies
+        /// and calculates the feedback values for the comb filter.
+        /// </summary>
         public void initializeCombFeedbackTable()
         {
+            // Create a linear spaced table for Q resonances
             GUI.CreateLinearSpacedTable(m_QResotable, 0.0f, 5.0f, 128, true);
 
+            // Calculate Q gain values based on the Q resonances
             for (int i = 0; i < 128; i++)
             {
                 m_QGainTable[i] = 1.0 / (1.0 + m_QResotable[i]);
@@ -50,6 +66,7 @@ namespace SpecAnalysis
             }
             m_QGainTable[255] = 0;
 
+            // Initialize the comb feedback table
             double r = Math.Pow(0.001, 1.0 / 127.0);
             double temp = 1.0;
 
@@ -66,6 +83,12 @@ namespace SpecAnalysis
             }
             m_combFeedbackTable[255] = 0;
         }
+
+        /// <summary>
+        /// Initializes the gain table for the filter.
+        /// This method populates the filter gain table with values
+        /// linearly spaced between an initial and a final value.
+        /// </summary>
         public void initializeGainTable()
         {
             filterGainTable = new double[128];
@@ -79,6 +102,12 @@ namespace SpecAnalysis
                 initial += addend;
             }
         }
+
+        /// <summary>
+        /// Initializes the resonance table for the filter.
+        /// This method populates the filter Q table with values
+        /// exponentially spaced between an initial and a final value.
+        /// </summary>
         public void initializeResonanceTable()
         {
             filterQTable = new double[128];
@@ -92,6 +121,7 @@ namespace SpecAnalysis
                 initial *= multiplier;
             }
         }
+
         public void calculateLP12Response(double[] outputBuffer, int outputLength, int filterResonance, int filterCutoff, int filterGain, ComplexNumber[] response)
         {
             initializeResonanceTable();

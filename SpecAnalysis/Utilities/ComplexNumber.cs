@@ -10,6 +10,9 @@ namespace SpecAnalysis
         public float x;
         public float y;
 
+        /// <summary>
+        /// Represents a complex number with real and imaginary components.
+        /// </summary>
         public ComplexNumber(double magnitude, double angle, bool logMagnitude)
         {
             if (logMagnitude)
@@ -36,7 +39,6 @@ namespace SpecAnalysis
             get { return y; }
             set { y = value; }
         }
-
         public float real
         {
             get { return x; }
@@ -113,6 +115,10 @@ namespace SpecAnalysis
             return sqr;
         }
 
+        /// <summary>
+        /// Calculates the angle of the complex number in radians.
+        /// </summary>
+        /// <returns>The angle in radians, ranging from -π to π.</returns>
         public double AngleRadians()
         {
             // angle is between +/- PI
@@ -153,6 +159,14 @@ namespace SpecAnalysis
             }
         }
 
+        /// <summary>
+        /// Sets the phase of each complex number in the array to zero,
+        /// keeping only the magnitude.
+        ///
+        /// This effectively converts each complex number to a real number,
+        /// discarding its imaginary component.
+        /// </summary>
+        /// <param name="c">An array of complex numbers to be modified.</param>
         public static void ZeroPhase(ComplexNumber[] c)
         {
             for (int i = 0; i < c.Length; i++)
@@ -162,40 +176,83 @@ namespace SpecAnalysis
             }
         }
 
+        /// <summary>
+        /// Adds two complex numbers.
+        /// </summary>
+        /// <param name="c1">The first complex number.</param>
+        /// <param name="c2">The second complex number.</param>
+        /// <returns>The sum of the two complex numbers.</returns>
         public static ComplexNumber operator +(ComplexNumber c1, ComplexNumber c2)
         {
             return new ComplexNumber(c1.x + c2.x, c1.y + c2.y);
         }
 
+        /// <summary>
+        /// Adds a complex number and a float.
+        /// </summary>
+        /// <param name="c1">The complex number.</param>
+        /// <param name="f">The float to add.</param>
+        /// <returns>The resulting complex number.</returns>
         public static ComplexNumber operator +(ComplexNumber c1, float f)
         {
             return new ComplexNumber(c1.x + f, c1.y);
         }
 
+        /// <summary>
+        /// Subtracts one complex number from another.
+        /// </summary>
+        /// <param name="c1">The first complex number.</param>
+        /// <param name="c2">The second complex number to subtract.</param>
+        /// <returns>The difference of the two complex numbers.</returns>
         public static ComplexNumber operator -(ComplexNumber c1, ComplexNumber c2)
         {
             return new ComplexNumber(c1.x - c2.x, c1.y - c2.y);
         }
 
+        /// <summary>
+        /// Subtracts a float from a complex number.
+        /// </summary>
+        /// <param name="c1">The complex number.</param>
+        /// <param name="f">The float to subtract.</param>
+        /// <returns>The resulting complex number.</returns>
         public static ComplexNumber operator -(ComplexNumber c1, float f)
         {
             return new ComplexNumber(c1.x - f, c1.y);
         }
 
+        /// <summary>
+        /// Multiplies a complex number by a float.
+        /// </summary>
+        /// <param name="c1">The complex number.</param>
+        /// <param name="f">The float to multiply by.</param>
+        /// <returns>The resulting complex number.</returns>
         public static ComplexNumber operator *(ComplexNumber c1, float f)
         {
             return new ComplexNumber(c1.x * f, c1.y * f);
         }
 
+        /// <summary>
+        /// Multiplies two complex numbers.
+        /// </summary>
+        /// <param name="c1">The first complex number.</param>
+        /// <param name="c2">The second complex number.</param>
+        /// <returns>The product of the two complex numbers.</returns>
         public static ComplexNumber operator *(ComplexNumber c1, ComplexNumber c2)
         {
             return new ComplexNumber(c1.x * c2.x - c1.y * c2.y, c1.x * c2.y + c1.y * c2.x);
         }
 
+        /// <summary>
+        /// Divides one complex number by another.
+        /// </summary>
+        /// <param name="c1">The numerator complex number.</param>
+        /// <param name="c2">The denominator complex number.</param>
+        /// <returns>The quotient of the two complex numbers.</returns>
         public static ComplexNumber operator /(ComplexNumber c1, ComplexNumber c2)
         {
             float div = 1.0f / ((c2.x * c2.x) + (c2.y * c2.y));
             return new ComplexNumber((c1.x * c2.x + c1.y * c2.y) * div, (c1.y * c2.x - c1.x * c2.y) * div);
         }
+
     }
 };

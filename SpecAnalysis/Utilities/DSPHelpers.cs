@@ -8,6 +8,13 @@ namespace SpecAnalysis.Utilities
 {
     public class DSPHelpers
     {
+        /// <summary>
+        /// Calculates the magnitude of a spectrum array and populates a magnitude array.
+        /// </summary>
+        /// <param name="spectrumArray">An array of complex numbers representing the spectrum.</param>
+        /// <param name="magnitudeArray">An array to store the calculated magnitudes.</param>
+        /// <param name="logMagnitude">If true, calculates the logarithmic magnitude; otherwise, calculates the linear magnitude.</param>
+        /// <returns>The maximum magnitude value calculated from the spectrum.</returns>
         public static float CalculateMagnitude(ComplexNumber[] spectrumArray, float[] magnitudeArray, bool logMagnitude)
         {
             int spectrumLength = spectrumArray.Length / 2 + 1;
@@ -42,6 +49,14 @@ namespace SpecAnalysis.Utilities
             return maxValue;
         }
 
+        /// <summary>
+        /// Normalizes the peak magnitude of a complex number array to 1.
+        /// </summary>
+        /// <param name="array">An array of complex numbers to be normalized.</param>
+        /// <remarks>
+        /// This method finds the maximum magnitude in the array and scales all complex numbers 
+        /// so that the maximum magnitude becomes 1. The imaginary parts are also scaled accordingly.
+        /// </remarks>
         public static void NormalizePeak(ComplexNumber[] array)
         {
             int length = array.Length;
@@ -64,161 +79,15 @@ namespace SpecAnalysis.Utilities
             }
         }
 
-        //public static bool CalculatePeaks(float[] spectrumData, int dataLength, List<WaveformPeak> peakList, int zeroPadRatio)
-        //{
-        //    float spectrumThreshold = -100.0f;
-        //    float spectrumPeak = -100.0f;
-        //    float diffThreshold = 80.0f;
-        //    float fundamentalPeakThreshold = 20.0f;
-        //    int offset;
-
-        //    // calculate the spectrum peak
-        //    for (int i = 0, j = dataLength; i < j; i++)
-        //    {
-        //        if (spectrumData[i] > spectrumPeak)
-        //            spectrumPeak = spectrumData[i];
-        //    }
-
-        //    switch (zeroPadRatio)
-        //    {
-        //        case 1:
-        //            offset = 1;
-        //            break;
-
-        //        case 2:
-        //            offset = 2;
-        //            break;
-
-        //        case 4:
-        //            offset = 3;
-        //            break;
-
-        //        default:
-        //            offset = 4;
-        //            break;
-        //    }
-
-        //    peakList.Clear();
-
-        //    // if derivative[n-1] > 0 and derivative [n+1] < 0 -> find zero crossing point between n-1, n+1, using sinc interpolator
-        //    for (int i = offset, j = dataLength - offset; i < j; i++)
-        //    {
-        //        bool hasPeak = false;
-        //        float previous1 = spectrumData[i - 1];
-        //        float current = spectrumData[i];
-        //        float next1 = spectrumData[i + 1];
-
-        //        if (offset == 1)
-        //        {
-        //            hasPeak = (current > previous1 && current > next1);
-        //        }
-        //        else
-        //            if (offset == 2)
-        //        {
-        //            float previous2 = spectrumData[i - 2];
-        //            float next2 = spectrumData[i + 2];
-
-        //            hasPeak = (current > previous1 && current > next1 && previous1 > previous2 && next1 > next2);
-        //        }
-        //        else
-        //                if (offset == 3)
-        //        {
-        //            float previous2 = spectrumData[i - 2];
-        //            float previous3 = spectrumData[i - 3];
-        //            float next2 = spectrumData[i + 2];
-        //            float next3 = spectrumData[i + 3];
-
-        //            hasPeak = (current > previous1 && current > next1 && previous1 > previous2 && next1 > next2 && next2 > next3 && previous2 > previous3);
-        //        }
-        //        else
-        //        {
-        //            float previous2 = spectrumData[i - 2];
-        //            float previous3 = spectrumData[i - 3];
-        //            float previous4 = spectrumData[i - 4];
-        //            float next2 = spectrumData[i + 2];
-        //            float next3 = spectrumData[i + 3];
-        //            float next4 = spectrumData[i + 4];
-
-        //            hasPeak = (current > previous1 && current > next1 && previous1 > previous2 && next1 > next2 && next2 > next3 && previous2 > previous3 && next3 > next4 && previous3 > previous4);
-
-        //        }
-
-        //        if (hasPeak)
-        //        {
-        //            float peakX = 0.0f;
-        //            float peakY = -120.0f;
-
-        //            FindPeakLocationQuadratic(previous1, current, next1, ref peakX, ref peakY);
-
-        //            peakX = Convert.ToSingle(i) + peakX;
-
-        //            if (peakY >= spectrumThreshold && (spectrumPeak - peakY) < diffThreshold)
-        //            {
-        //                peakList.Add(new WaveformPeak(peakX, peakY));
-        //                i += 2;
-        //            }
-        //        }
-        //    }
-
-        //    // we found the peaks, now it's time to find the root note
-        //    // find the peak with the maximum number of harrmonics, that's gonna be our root note
-        //    int lastIndex = -1;
-        //    int lastNumberOfHarmonics = 0;
-        //    float lastFrequency = 0;
-
-        //    for (int i = 0; i < peakList.Count; i++)
-        //    {
-        //        float currentFrequency = peakList[i].bin;
-        //        float currentPeak = peakList[i].peak;
-
-        //        if ((spectrumPeak - currentPeak) <= fundamentalPeakThreshold)
-        //        {
-        //            int numberOfHarmonics = 0;
-
-        //            for (int j = i + 1; j < peakList.Count; j++)
-        //            {
-        //                float nextFrequency = peakList[j].bin;
-        //                float frequencyRatio = nextFrequency / currentFrequency;
-        //                int harmonicNumber = Convert.ToInt32(frequencyRatio + 0.2f);
-        //                float diff = Math.Abs(frequencyRatio - Convert.ToSingle(harmonicNumber));
-
-        //                if (diff <= 0.15f)
-        //                    numberOfHarmonics++;
-        //            }
-
-        //            if (numberOfHarmonics < lastNumberOfHarmonics)
-        //                break;
-
-        //            lastNumberOfHarmonics = numberOfHarmonics;
-        //            lastFrequency = currentFrequency;
-        //            lastIndex = i;
-        //        }
-        //    }
-
-        //    if (lastIndex >= 0)
-        //    {
-        //        float fundamentalFrequency = peakList[lastIndex].bin;
-
-        //        peakList[lastIndex].harmonicNumber = 1;
-
-        //        for (int i = lastIndex + 1; i < peakList.Count; i++)
-        //        {
-        //            float nextFrequency = peakList[i].bin;
-        //            float frequencyRatio = nextFrequency / fundamentalFrequency;
-
-        //            int harmonicNumber = Convert.ToInt32(frequencyRatio + 0.2f);
-        //            float diff = Math.Abs(frequencyRatio - Convert.ToSingle(harmonicNumber));
-
-        //            if (diff <= 0.15f)
-        //                peakList[i].harmonicNumber = harmonicNumber;
-        //        }
-
-
-        //    }
-        //    return lastIndex > 0;
-
-        //}
-
+        /// <summary>
+        /// Applies a Moving Average filter to the input array.
+        /// </summary>
+        /// <param name="input">The input array to be filtered.</param>
+        /// <param name="filterSize">The size of the moving average filter.</param>
+        /// <remarks>
+        /// This method modifies the input array by applying a moving average filter of the specified size.
+        /// It pads the input array with the first and last values to handle edge cases.
+        /// </remarks>
         public static void MAFilter(float[] input, int filterSize)
         {
             float fGain = 1.0f / Convert.ToSingle(filterSize);
@@ -249,6 +118,17 @@ namespace SpecAnalysis.Utilities
             }
 
         }
+
+        /// <summary>
+        /// Pads the input array with zeros at the beginning and end.
+        /// </summary>
+        /// <param name="input">The array to be padded.</param>
+        /// <param name="padBegin">The number of zeros to add at the beginning of the array.</param>
+        /// <param name="padEnd">The number of zeros to add at the end of the array.</param>
+        /// <returns>A new array that includes the original data padded with zeros.</returns>
+        /// <remarks>
+        /// The new array will have a length equal to the original array length plus the specified padding amounts.
+        /// </remarks>
         public static float[] ZeroPad(float[] input, int padBegin, int padEnd)
         {
             int newLength = input.Length + padBegin + padEnd;
@@ -267,21 +147,56 @@ namespace SpecAnalysis.Utilities
             return newData;
         }
 
+        /// <summary>
+        /// Transforms a floating-point value from one coordinate system to another.
+        /// </summary>
+        /// <param name="sourceValue">The value to be transformed.</param>
+        /// <param name="sourceStart">The start of the source range.</param>
+        /// <param name="sourceEnd">The end of the source range.</param>
+        /// <param name="destStart">The start of the destination range.</param>
+        /// <param name="destEnd">The end of the destination range.</param>
+        /// <returns>The transformed value in the destination coordinate system.</returns>
         public static float TransformCoordinate(float sourceValue, float sourceStart, float sourceEnd, float destStart, float destEnd)
         {
             return destStart + (destEnd - destStart) * (sourceValue - sourceStart) / (sourceEnd - sourceStart);
         }
 
+        /// <summary>
+        /// Transforms an integer value from one coordinate system to another.
+        /// </summary>
+        /// <param name="sourceValue">The value to be transformed.</param>
+        /// <param name="sourceStart">The start of the source range.</param>
+        /// <param name="sourceEnd">The end of the source range.</param>
+        /// <param name="destStart">The start of the destination range.</param>
+        /// <param name="destEnd">The end of the destination range.</param>
+        /// <returns>The transformed value in the destination coordinate system.</returns>
         public static int TransformCoordinate(int sourceValue, int sourceStart, int sourceEnd, int destStart, int destEnd)
         {
             return destStart + (destEnd - destStart) * (sourceValue - sourceStart) / (sourceEnd - sourceStart);
         }
 
+        /// <summary>
+        /// Transforms a floating-point value to an integer in a specified coordinate system.
+        /// </summary>
+        /// <param name="sourceValue">The value to be transformed.</param>
+        /// <param name="sourceStart">The start of the source range.</param>
+        /// <param name="sourceEnd">The end of the source range.</param>
+        /// <param name="destStart">The start of the destination range.</param>
+        /// <param name="destEnd">The end of the destination range.</param>
+        /// <returns>The transformed value as an integer in the destination coordinate system.</returns>
         public static int TransformCoordinate(float sourceValue, float sourceStart, float sourceEnd, int destStart, int destEnd)
         {
             return Convert.ToInt32(Convert.ToSingle(destStart) + Convert.ToSingle(destEnd - destStart) * (sourceValue - sourceStart) / (sourceEnd - sourceStart));
         }
 
+        /// <summary>
+        /// Finds the maximum value in a specified range of a float array.
+        /// </summary>
+        /// <param name="input">The input array of floats.</param>
+        /// <param name="inputLength">The actual length of the input array.</param>
+        /// <param name="startIndex">The starting index for the search.</param>
+        /// <param name="endIndex">The ending index for the search (exclusive).</param>
+        /// <returns>The maximum value found in the specified range.</returns>
         public static float FindMax(float[] input, int inputLength, int startIndex, int endIndex)
         {
             float maxVal = -1000.0f;
@@ -297,6 +212,17 @@ namespace SpecAnalysis.Utilities
             return maxVal;
         }
 
+        /// <summary>
+        /// Interpolates between two tables at specified indices based on a given position.
+        /// </summary>
+        /// <param name="pInput1">The first input table for interpolation.</param>
+        /// <param name="index1">The index in the first input table.</param>
+        /// <param name="pInput2">The second input table for interpolation.</param>
+        /// <param name="index2">The index in the second input table.</param>
+        /// <param name="position">The interpolation position between the two tables (0 to 1).</param>
+        /// <param name="pOutput">The output table to store the interpolated values.</param>
+        /// <param name="outputIndex">The index in the output table where results will be stored.</param>
+        /// <param name="tableLength">The length of the tables.</param>
         public static void interpolateTables(float[,] pInput1, int index1, float[,] pInput2, int index2, float position, float[,] pOutput, int outputIndex, int tableLength)
         {
             for (int i = 0; i <= tableLength; i++)
@@ -305,6 +231,12 @@ namespace SpecAnalysis.Utilities
             }
         }
 
+        /// <summary>
+        /// Creates a linear table and fills it with scaled values based on the specified index.
+        /// </summary>
+        /// <param name="pTable">The table to be populated with linear values.</param>
+        /// <param name="index">The index in the table to fill.</param>
+        /// <param name="tableLength">The length of the table to create.</param>
         public static void createLinearTable(float[,] pTable, int index, int tableLength)
         {
             float scaler = 1.0f / Convert.ToSingle(tableLength);

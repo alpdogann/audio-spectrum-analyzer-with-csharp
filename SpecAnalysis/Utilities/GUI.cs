@@ -30,6 +30,14 @@ namespace SpecAnalysis
             }
 
         }
+        /// <summary>
+        /// Creates a linearly spaced table of values and optionally calculates their differences.
+        /// </summary>
+        /// <param name="table">The array to store the calculated values.</param>
+        /// <param name="initialValue">The initial value of the table.</param>
+        /// <param name="finalValue">The final value of the table.</param>
+        /// <param name="numberOfElements">The number of elements to generate in the table.</param>
+        /// <param name="calculateDifferences">Whether to calculate and store the differences between consecutive elements.</param>
         public static void CreateLinearSpacedTable(double[] table, float initialValue, float finalValue, int numberOfElements, bool calculateDifferences)
         {
             double currentValue = initialValue;
@@ -50,6 +58,16 @@ namespace SpecAnalysis
                 table[2 * numberOfElements - 1] = 0;
             }
         }
+
+
+        /// <summary>
+        /// Creates a logarithmically spaced table of values and optionally calculates their differences.
+        /// </summary>
+        /// <param name="table">The array to store the calculated values.</param>
+        /// <param name="initialValue">The initial value of the table.</param>
+        /// <param name="finalValue">The final value of the table.</param>
+        /// <param name="numberOfElements">The number of elements to generate in the table.</param>
+        /// <param name="calculateDifferences">Whether to calculate and store the differences between consecutive elements.</param>
         public static void CreateLogSpacedTable(double[] table, double initialValue, double finalValue, int numberOfElements, bool calculateDifferences)
         {
             double currentValue = initialValue;
@@ -71,6 +89,7 @@ namespace SpecAnalysis
                 table[2 * numberOfElements - 1] = 0;
             }
         }
+
         public static float FindMax(float[] input, int inputLength, int startIndex, int endIndex)
         {
             float maxVal = -1000.0f;
@@ -131,6 +150,18 @@ namespace SpecAnalysis
 
             //return destMin + Convert.ToInt32(Convert.ToDouble(sourceCoordinate - sourceMin) * Convert.ToDouble(destMax - destMin) / Convert.ToDouble(sourceMax - sourceMin));
         }
+
+        /// <summary>
+        /// Fills a rounded rectangle on the specified <see cref="Graphics"/> surface.
+        /// </summary>
+        /// <param name="graphics">The <see cref="Graphics"/> object to draw on.</param>
+        /// <param name="rectangle">The rectangle defining the bounds of the rounded rectangle.</param>
+        /// <param name="fillBrush">The <see cref="Brush"/> used to fill the rectangle.</param>
+        /// <param name="radiusTopLeft">The radius of the top-left corner.</param>
+        /// <param name="radiusTopRight">The radius of the top-right corner.</param>
+        /// <param name="radiusBottomLeft">The radius of the bottom-left corner.</param>
+        /// <param name="radiusBottomRight">The radius of the bottom-right corner.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="graphics"/> is null.</exception>
         public static void FillRoundedRectangle(System.Drawing.Graphics graphics, Rectangle rectangle, Brush fillBrush, int radiusTopLeft, int radiusTopRight, int radiusBottomLeft, int radiusBottomRight)
         {
             if (graphics == null)
@@ -154,6 +185,18 @@ namespace SpecAnalysis
                 graphics.SmoothingMode = mode;
             }
         }
+
+        /// <summary>
+        /// Draws a rounded rectangle on the specified <see cref="Graphics"/> surface.
+        /// </summary>
+        /// <param name="graphics">The <see cref="Graphics"/> object to draw on.</param>
+        /// <param name="rectangle">The rectangle defining the bounds of the rounded rectangle.</param>
+        /// <param name="borderPen">The <see cref="Pen"/> used to draw the border of the rectangle.</param>
+        /// <param name="radiusTopLeft">The radius of the top-left corner.</param>
+        /// <param name="radiusTopRight">The radius of the top-right corner.</param>
+        /// <param name="radiusBottomLeft">The radius of the bottom-left corner.</param>
+        /// <param name="radiusBottomRight">The radius of the bottom-right corner.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="graphics"/> is null.</exception>
         public static void DrawRoundedRectangle(Graphics graphics, Rectangle rectangle, Pen borderPen, int radiusTopLeft, int radiusTopRight, int radiusBottomLeft, int radiusBottomRight)
         {
             if (graphics == null)
@@ -177,6 +220,16 @@ namespace SpecAnalysis
                 graphics.SmoothingMode = mode;
             }
         }
+
+        /// <summary>
+        /// Creates a rounded rectangle <see cref="GraphicsPath"/> with customizable corner radii.
+        /// </summary>
+        /// <param name="r">The rectangle defining the bounds of the rounded rectangle.</param>
+        /// <param name="radiusTopLeft">The radius of the top-left corner.</param>
+        /// <param name="radiusTopRight">The radius of the top-right corner.</param>
+        /// <param name="radiusBottomLeft">The radius of the bottom-left corner.</param>
+        /// <param name="radiusBottomRight">The radius of the bottom-right corner.</param>
+        /// <returns>A <see cref="GraphicsPath"/> representing the rounded rectangle.</returns>
         public static System.Drawing.Drawing2D.GraphicsPath RoundedRectangle(Rectangle r, int radiusTopLeft, int radiusTopRight, int radiusBottomLeft, int radiusBottomRight)
         {
             int dTL = radiusTopLeft * 2;
@@ -209,5 +262,6 @@ namespace SpecAnalysis
 
             return path;
         }
+
     }
 }

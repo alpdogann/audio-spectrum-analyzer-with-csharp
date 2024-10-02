@@ -28,13 +28,6 @@ namespace SpecAnalysis.Utilities
         public double a1, a2;
         public double x1, x2, y1, y2;
 
-
-        /// <summary>
-        /// <remarks>
-        // cutoff is between 0-1, 1 corresponds to nyquist sampling rate/2
-        /// </remarks>
-        /// </summary>
-        /// 
         public BiquadFilterCoefficients(FilterTypeEnum eType, double filterCutoff, double filterGain)
         {
             this.filterOrder = 1;
