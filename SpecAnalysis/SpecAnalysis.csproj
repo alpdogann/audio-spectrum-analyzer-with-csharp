@@ -36,32 +36,12 @@
     <StartupObject>SpecAnalysis.Program</StartupObject>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="CSharpDSPLibrary, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\..\..\..\..\Code\CSharpDSPLibrary\CSharpDSPLibrary\bin\Debug\CSharpDSPLibrary.dll</HintPath>
-    </Reference>
     <Reference Include="NAudio, Version=1.8.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\..\..\..\..\..\..\Code\CSharpDSPLibrary\CSharpDSPLibrary\bin\Debug\NAudio.dll</HintPath>
     </Reference>
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
-    <Reference Include="Syncfusion.Core.WinForms">
-      <HintPath>..\packages\Syncfusion.Core.WinForms.18.2.0.56\lib\net451\Syncfusion.Core.WinForms.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Syncfusion.Licensing, Version=18.2451.0.56, Culture=neutral, PublicKeyToken=632609b4d040f6b4, processorArchitecture=MSIL">
-      <HintPath>..\packages\Syncfusion.Licensing.18.2.0.56\lib\net451\Syncfusion.Licensing.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Syncfusion.SfSmithChart.WinForms">
-      <HintPath>..\packages\Syncfusion.SfSmithChart.WinForms.18.2.0.56\lib\net451\Syncfusion.SfSmithChart.WinForms.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="Syncfusion.Shared.Base, Version=18.2451.0.56, Culture=neutral, PublicKeyToken=3d67ed1f87d44c89, processorArchitecture=MSIL">
-      <HintPath>..\packages\Syncfusion.Shared.Base.18.2.0.56\lib\net451\Syncfusion.Shared.Base.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Windows.Forms.DataVisualization" />

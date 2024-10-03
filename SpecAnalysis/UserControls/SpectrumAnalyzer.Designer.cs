@@ -1,5 +1,4 @@
-﻿using CSharpDSPLibrary.Wave;
-using System;
+﻿using System;
 using System.Windows.Forms;
 
 
