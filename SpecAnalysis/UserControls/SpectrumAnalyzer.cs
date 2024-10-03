@@ -1854,5 +1854,21 @@ namespace SpecAnalysis
             else
                 filtersApplied = false;
         }
+
+        /// <summary>
+        /// Handles the resize event of the SpectrumAnalyzer control
+        /// </summary>
+        /// <remarks>
+        /// This method clears the coordinate lists for point marking and zooming when the 
+        /// SpectrumAnalyzer is resized, ensuring that the points and zoom area are reset 
+        /// after the control's size changes.
+        /// </remarks>
+        private void SpectrumAnalyzer_Resize(object sender, EventArgs e)
+        {
+            pointCoordinateX.Clear();
+            pointCoordinateY.Clear();
+            zoomPointCoordinateX.Clear();
+            zoomPointCoordinateY.Clear();
+        }
     }
 }

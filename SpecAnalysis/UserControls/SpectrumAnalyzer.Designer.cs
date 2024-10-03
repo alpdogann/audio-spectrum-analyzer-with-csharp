@@ -158,7 +158,7 @@ namespace SpecAnalysis
             // 
             // treeView1
             // 
-            this.treeView1.BackColor = System.Drawing.Color.SlateGray;
+            this.treeView1.BackColor = System.Drawing.Color.LightGoldenrodYellow;
             this.treeView1.Location = new System.Drawing.Point(7, 50);
             this.treeView1.Margin = new System.Windows.Forms.Padding(3, 2, 3, 2);
             this.treeView1.Name = "treeView1";
@@ -318,7 +318,7 @@ namespace SpecAnalysis
             // 
             // listBox1
             // 
-            this.listBox1.BackColor = System.Drawing.Color.SlateGray;
+            this.listBox1.BackColor = System.Drawing.Color.LightGoldenrodYellow;
             this.listBox1.Enabled = false;
             this.listBox1.ForeColor = System.Drawing.Color.Silver;
             this.listBox1.FormattingEnabled = true;
@@ -491,6 +491,7 @@ namespace SpecAnalysis
             this.MouseDown += new System.Windows.Forms.MouseEventHandler(this.SpectrumAnalyzer_MouseDown);
             this.MouseMove += new System.Windows.Forms.MouseEventHandler(this.SpectrumAnalyzer_MouseMove);
             this.MouseUp += new System.Windows.Forms.MouseEventHandler(this.SpectrumAnalyzer_MouseUp);
+            this.Resize += new System.EventHandler(this.SpectrumAnalyzer_Resize);
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown2)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDown3)).EndInit();
             this.groupBoxEnvelope.ResumeLayout(false);

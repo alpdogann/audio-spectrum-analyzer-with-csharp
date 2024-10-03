@@ -283,7 +283,7 @@
             // 
             this.groupBox1.AutoSize = true;
             this.groupBox1.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.groupBox1.BackColor = System.Drawing.Color.Silver;
+            this.groupBox1.BackColor = System.Drawing.Color.DimGray;
             this.groupBox1.Controls.Add(this.checkBox1);
             this.groupBox1.Controls.Add(this.lblMultidrive);
             this.groupBox1.Controls.Add(this.numMultidrive);
