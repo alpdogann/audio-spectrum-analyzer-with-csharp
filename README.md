@@ -2,6 +2,8 @@
 
 This tool is designed to analyze the frequency characteristics of analog audio devices by generating real-time signals and capturing the audio input. It consists of two main components: a Form that generates signals and sends them to the output of the audio device, and a Spectrum Analyzer (implemented as a user control) that processes the data from the input of the audio device. By connecting an analog device between the input and output of the sound card or audio interface, users can obtain detailed frequency information about the device.
 
+![Ekran Görüntüsü (38)](https://github.com/user-attachments/assets/3de81608-2988-4614-ad51-ec7f25571df1)
+
 ## Features
 
 - **Input Waveform Section**: 
