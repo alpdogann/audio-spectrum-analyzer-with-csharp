@@ -414,7 +414,7 @@ namespace SpecAnalysis
             // 
             // groupBoxPoints
             // 
-            this.groupBoxPoints.BackColor = System.Drawing.Color.DimGray;
+            this.groupBoxPoints.BackColor = System.Drawing.Color.Black;
             this.groupBoxPoints.Controls.Add(this.treeView1);
             this.groupBoxPoints.Controls.Add(this.button1);
             this.groupBoxPoints.Controls.Add(this.button2);
@@ -436,7 +436,7 @@ namespace SpecAnalysis
             this.lblWavefile.ForeColor = System.Drawing.Color.Silver;
             this.lblWavefile.Location = new System.Drawing.Point(947, 39);
             this.lblWavefile.Name = "lblWavefile";
-            this.lblWavefile.Size = new System.Drawing.Size(99, 21);
+            this.lblWavefile.Size = new System.Drawing.Size(79, 17);
             this.lblWavefile.TabIndex = 83;
             this.lblWavefile.Text = "Wave Input";
             // 
