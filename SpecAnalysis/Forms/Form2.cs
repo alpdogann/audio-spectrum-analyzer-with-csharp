@@ -198,11 +198,6 @@ namespace SpecAnalysis
                         waveform = "Sine Sweep";
                         break;
                     case 3:
-                        generator.GenerateSineSweep(outputBufferFloat, numberOfSamples, samplingRate, sweepDuration, sweepLowFreq, sweepHighFreq, true);
-                        isPeriodic = false;
-                        waveform = "Sine Sweep";
-                        break;
-                    case 4:
                         alternativeGenerator.Type = NAudio.Wave.SampleProviders.SignalGeneratorType.Triangle;
                         alternativeGenerator.Frequency = sineFrequencyHz;
                         alternativeGenerator.Gain = 0.99f;
@@ -212,7 +207,7 @@ namespace SpecAnalysis
                         isPeriodic = true;
                         waveform = "Triangle";
                         break;
-                    case 5:
+                    case 4:
                         alternativeGenerator.Type = NAudio.Wave.SampleProviders.SignalGeneratorType.Square;
                         alternativeGenerator.Frequency = sineFrequencyHz;
                         alternativeGenerator.Gain = 0.99f;
@@ -222,7 +217,7 @@ namespace SpecAnalysis
                         isPeriodic = true;
                         waveform = "Square";
                         break;
-                    case 6:
+                    case 5:
                         alternativeGenerator.Type = NAudio.Wave.SampleProviders.SignalGeneratorType.SawTooth;
                         alternativeGenerator.Frequency = sineFrequencyHz;
                         alternativeGenerator.Gain = 0.99f;
@@ -232,17 +227,17 @@ namespace SpecAnalysis
                         isPeriodic = true;
                         waveform = "Sawtooth";
                         break;
-                    case 7:
+                    case 6:
                         generator.GenerateSineWaveform(outputBufferFloat, numberOfSamples, sineFrequencyHz, samplingRate, SineWaveType.ClippedSine);
                         isPeriodic = false;
                         waveform = "Clipped Sine";
                         break;
-                    case 8:
+                    case 7:
                         generator.GenerateSineWaveform(outputBufferFloat, numberOfSamples, sineFrequencyHz, samplingRate, SineWaveType.HalfWaveSine);
                         isPeriodic = false;
                         waveform = "Half-Wave Rectified Sine";
                         break;
-                    case 9:
+                    case 8:
                         generator.GenerateSineWaveform(outputBufferFloat, numberOfSamples, sineFrequencyHz, samplingRate, SineWaveType.FullWaveSine);
                         isPeriodic = false;
                         waveform = "Full-Wave Rectified Sine";

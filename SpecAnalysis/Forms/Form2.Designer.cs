@@ -63,7 +63,6 @@
             "White Noise",
             "Sine Wave",
             "Linear Sine Sweep",
-            "Log Sine Sweep",
             "Triangle",
             "Square",
             "Sawtooth",
