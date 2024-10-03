@@ -44,7 +44,7 @@ This tool is designed to analyze the frequency characteristics of analog audio d
 - Windows OS
 - .NET Framework
 - A sound card or external audio device with both input and output capabilities
-- NAudio Library. You should download and include the NAudio project under the NAudio folder from the forked repo. You can find more details and installation instructions [here](https://github.com/SjB/NAudio).
+- **NAudio Library. You should download and include the NAudio project under the NAudio folder from the forked repo. You can find more details and installation instructions** [here](https://github.com/SjB/NAudio).
 
 ## Dependencies
 This project utilizes the **NAudio** library for handling audio input/output, signal generation, and real-time processing. You can find more details about NAudio and installation instructions [here](https://github.com/SjB/NAudio).
