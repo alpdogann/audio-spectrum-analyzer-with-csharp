@@ -240,7 +240,7 @@ namespace SpecAnalysis
 
 
             // Create a rectangular frame for the main display area, offsetting from the window edges
-            Rectangle frameRect = Rectangle.FromLTRB(this.Left + 10, this.Top + 150, this.Right - 10 + resizeX, this.Bottom - 200 + resizeY);
+            Rectangle frameRect = Rectangle.FromLTRB(this.Left + 10, this.Top + 150, this.Right - 10 + resizeX, this.Bottom - 220 + resizeY);
             // Create an inner rectangle for the content area within the frame
             Rectangle innerRect = Rectangle.FromLTRB(frameRect.Left + 50, frameRect.Top + 30, frameRect.Right - 35, frameRect.Bottom - 30);
 
