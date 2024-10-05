@@ -34,7 +34,6 @@ namespace SpecAnalysis
         static string relativePathForDirectRecording = "..\\test";
         // Get the full path for recordings by combining the desktop path with the relative path.
         private string pathForDirectRecording = Path.GetFullPath(desktopPath + relativePathForDirectRecording);
-        FileStream fs = null;
 
         // Create an instance of the device selection form to choose an audio device.
         static FormSelectDevice formToSelectDevice = new FormSelectDevice();
@@ -110,8 +109,6 @@ namespace SpecAnalysis
             asioOut.AudioAvailable += new EventHandler<AsioAudioAvailableEventArgs>(asio_DataAvailable);
             asioOut.InitRecordAndPlayback(wavprov, 1, 0);
             asioOut.Play();
-            
-            fs = new FileStream(pathForDirectRecording, FileMode.Create, FileAccess.Write);
         }
 
         /// <summary>
@@ -253,9 +250,6 @@ namespace SpecAnalysis
                     // Copy the output buffer data back to the output buffers.
                     Marshal.Copy(outputBufferByte, 0, e.OutputBuffers[i], numberOfSamples * 4);
                     }
-                // Write the input buffer byte data to file.
-                fs.Write(inputBufferByte, 0, numberOfSamples * 4);
-
                 // Write samples to the wave file if recording.
                 if (isRecording)
                     waveFile.WriteSamples(inputBufferFloat, 0, numberOfSamples);
@@ -280,7 +274,6 @@ namespace SpecAnalysis
                 spectrumAnalyzer1.update(fftSize, samplingRate, outputPoints, shiftedIndexes, realTimeWaveform, isPeriodic, cFFTOutput, numberOfSamples);
                 spectrumAnalyzer1.Invalidate();
                 e.WrittenToOutputBuffers = true;
-                fs.Flush();
 
                 // Flush the wave file if recording.
                 if (isRecording)
