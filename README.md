@@ -44,8 +44,9 @@ This tool is designed to analyze the frequency characteristics of analog audio d
     
 ## Requirements
 - Windows OS
-- .NET Framework
-- A sound card or external audio device with both input and output capabilities
+- .NET Framework (preferably v4.5.2)
+- A sound card or external audio device with both input and output capabilities, if you don't have either of these, ASIO4ALL is the way to go. You can find more details about ASIO4ALL and installation instructions [here](https://asio4all.org/about/download-asio4all/).
+
 - **NAudio Library version 1.10.0**. Install NAudio by using NuGet package manager:
   ```bash
   Install-Package NAudio -Version 1.10.0
